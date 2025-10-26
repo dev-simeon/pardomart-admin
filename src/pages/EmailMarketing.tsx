@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { CreateEmailModal, EmailPreviewModal } from "@/components/emails";
 
 const ExportIcon = () => (
   <svg
@@ -147,7 +148,7 @@ const ArrowRightIcon = () => (
   </svg>
 );
 
-interface Email {
+export interface Email {
   id: number;
   subject: string;
   content: string;
@@ -245,6 +246,8 @@ const mockEmails: Email[] = [
 export default function EmailMarketing() {
   const [selectedEmails, setSelectedEmails] = useState<number[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
 
   const toggleEmailSelection = (emailId: number) => {
     setSelectedEmails((prev) =>
@@ -260,6 +263,11 @@ export default function EmailMarketing() {
     } else {
       setSelectedEmails(mockEmails.map((email) => email.id));
     }
+  };
+
+  const handlePreviewEmail = (email: Email) => {
+    setSelectedEmail(email);
+    setIsPreviewModalOpen(true);
   };
 
   return (
@@ -364,7 +372,10 @@ export default function EmailMarketing() {
                     </td>
                     <td className="px-4 py-5">
                       <div className="flex items-center gap-2">
-                        <button className="text-[#6A717F] hover:text-[#023337]">
+                        <button
+                          onClick={() => handlePreviewEmail(email)}
+                          className="text-[#6A717F] hover:text-[#023337]"
+                        >
                           <MessageIcon />
                         </button>
                         <button className="text-[#6A717F] hover:text-red-600">
@@ -420,7 +431,15 @@ export default function EmailMarketing() {
         </div>
       </div>
 
-      {/* <CreateEmailModal open={isModalOpen} onOpenChange={setIsModalOpen} /> */}
+      <CreateEmailModal open={isModalOpen} onOpenChange={setIsModalOpen} />
+
+      {selectedEmail && (
+        <EmailPreviewModal
+          open={isPreviewModalOpen}
+          onOpenChange={setIsPreviewModalOpen}
+          email={selectedEmail}
+        />
+      )}
     </>
   );
 }

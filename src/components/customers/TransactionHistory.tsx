@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
+import { TransactionDetailsModal } from "@/components/transactions";
 
 type TransactionStatus = "complete" | "cancelled" | "pending";
 
@@ -114,32 +115,35 @@ export function TransactionHistory() {
     });
     setIsModalOpen(true);
   };
+
   return (
-    <div className="bg-white rounded-2xl overflow-hidden">
-      <div className="px-6 md:px-11 py-7 flex items-center justify-between flex-wrap gap-4">
-        <div className="inline-flex items-center justify-center gap-1 px-3.5 py-2.5 bg-[#D2EAE3] rounded-md">
-          <span className="text-[15px] font-lato font-medium text-black leading-5">
-            Transaction History
-          </span>
+    <>
+      <div className="overflow-hidden rounded-2xl bg-white">
+        <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-7 md:px-11">
+          <div className="inline-flex items-center justify-center gap-1 rounded-md bg-[#D2EAE3] px-3.5 py-2.5">
+            <span className="font-lato text-[15px] font-medium leading-5 text-black">
+              Transaction History
+            </span>
+          </div>
+          <button className="flex items-center gap-3 font-sans text-[15px] font-semibold text-[#06888C] transition-opacity hover:opacity-80">
+            View All
+            <svg
+              width="12"
+              height="11"
+              viewBox="0 0 12 11"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M6.58333 9.5L10.75 5.125M10.75 5.125L6.58333 0.75M10.75 5.125H0.75"
+                stroke="#06888C"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
         </div>
-        <button className="flex items-center gap-3 text-[15px] font-sans font-semibold text-[#06888C] hover:opacity-80 transition-opacity">
-          View All
-          <svg
-            width="12"
-            height="11"
-            viewBox="0 0 12 11"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M6.58333 9.5L10.75 5.125M10.75 5.125L6.58333 0.75M10.75 5.125H0.75"
-              stroke="#06888C"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
 
         <div className="w-full overflow-x-auto">
           <table className="w-full border-collapse">
@@ -260,6 +264,12 @@ export function TransactionHistory() {
           </table>
         </div>
       </div>
-    </div>
+
+      <TransactionDetailsModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        transaction={selectedTransaction || undefined}
+      />
+    </>
   );
 }
