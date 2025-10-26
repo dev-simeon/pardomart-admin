@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import { CustomerStatCard } from "@/components/customers/CustomerStatCard";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -543,7 +544,10 @@ export default function Customers() {
                           }
                           className="h-4 w-4 rounded border-[#707070]"
                         />
-                        <div className="flex items-center gap-1.5">
+                        <Link
+                          to={`/customers/${customer.id}`}
+                          className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+                        >
                           <img
                             src={customer.avatar}
                             alt={customer.name}
@@ -552,7 +556,7 @@ export default function Customers() {
                           <span className="font-sans text-[15px] font-normal leading-normal text-[#131523]">
                             {customer.name}
                           </span>
-                        </div>
+                        </Link>
                       </div>
                     </td>
                     <td className="px-4 py-[17px] font-sans text-[15px] font-normal leading-normal text-black">

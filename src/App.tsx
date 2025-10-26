@@ -1,5 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as SonnerToaster } from "@/components/ui/sonner";
+import { Toaster as SonnerToaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -15,9 +15,16 @@ import Invoices from "./pages/Invoices";
 import InvoiceDetails from "./pages/InvoiceDetails";
 import OrderDetails from "./pages/OrderDetails";
 import Customers from "./pages/Customers";
+import CustomerInformation from "./pages/CustomerInformation";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import EmailMarketing from "./pages/EmailMarketing";
+import Profile from "./pages/Profile";
+import DeliveryGuys from "./pages/DeliveryGuys";
+import Support from "./pages/Support";
+import Messages from "./pages/Messages";
+import HelpCenter from "./pages/HelpCenter";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -112,6 +119,14 @@ function App() {
               }
             />
             <Route
+              path="/customers/:id"
+              element={
+                <Layout>
+                  <CustomerInformation />
+                </Layout>
+              }
+            />
+            <Route
               path="/analytics"
               element={
                 <Layout>
@@ -132,6 +147,54 @@ function App() {
               element={
                 <Layout>
                   <EmailMarketing />
+                </Layout>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <Layout>
+                  <Profile />
+                </Layout>
+              }
+            />
+            <Route
+              path="/delivery"
+              element={
+                <Layout>
+                  <DeliveryGuys />
+                </Layout>
+              }
+            />
+            <Route
+              path="/support"
+              element={
+                <Layout>
+                  <Support />
+                </Layout>
+              }
+            />
+            <Route
+              path="/messages"
+              element={
+                <Layout>
+                  <Messages />
+                </Layout>
+              }
+            />
+            <Route
+              path="/help"
+              element={
+                <Layout>
+                  <HelpCenter />
+                </Layout>
+              }
+            />
+            <Route
+              path="/privacy"
+              element={
+                <Layout>
+                  <PrivacyPolicy />
                 </Layout>
               }
             />

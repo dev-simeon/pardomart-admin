@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CreateEmailModal } from "@/components/EmailMarketing/CreateEmailModal";
 
 const ExportIcon = () => (
   <svg
@@ -421,7 +420,7 @@ export default function EmailMarketing() {
         </div>
       </div>
 
-      <CreateEmailModal open={isModalOpen} onOpenChange={setIsModalOpen} />
+      {/* <CreateEmailModal open={isModalOpen} onOpenChange={setIsModalOpen} /> */}
     </>
   );
 }

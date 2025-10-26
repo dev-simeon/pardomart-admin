@@ -2,7 +2,6 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import TransactionDetailsModal from "@/components/transactions/TransactionDetailsModal";
 
 const TotalTransactionIcon = () => (
   <svg
@@ -629,11 +628,11 @@ export default function Transactions() {
         </div>
       </div>
 
-      <TransactionDetailsModal
+      {/* <TransactionDetailsModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         transaction={selectedTransaction || undefined}
-      />
+      /> */}
     </div>
   );
 }

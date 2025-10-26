@@ -1,5 +1,5 @@
 import { ReactNode, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell,
   Search,
@@ -26,7 +26,7 @@ const getPageTitle = (pathname: string): string => {
     "/marketing": "Email Marketing",
     "/profile": "Profile",
     "/customers": "Customers",
-    "/delivery": "Delivery guys",
+    "/delivery": "Delivery Guys",
     "/settings": "Settings",
     "/support": "Support",
     "/messages": "Messages",
@@ -40,6 +40,10 @@ const getPageTitle = (pathname: string): string => {
 
   if (pathname.startsWith("/invoices/")) {
     return "Invoice Details";
+  }
+
+  if (pathname.startsWith("/customers/")) {
+    return "Customer Information";
   }
 
   return titles[pathname] || "Dashboard";
@@ -386,6 +390,7 @@ const LogoSvg = () => (
 
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const mainMenuItems = [
@@ -426,6 +431,12 @@ export function Layout({ children }: LayoutProps) {
     if (path === "/invoices") {
       return (
         location.pathname === path || location.pathname.startsWith("/invoices/")
+      );
+    }
+    if (path === "/customers") {
+      return (
+        location.pathname === path ||
+        location.pathname.startsWith("/customers/")
       );
     }
     return location.pathname === path;
@@ -522,10 +533,38 @@ export function Layout({ children }: LayoutProps) {
                 <Menu className="w-6 h-6" />
               </button>
 
+              {/* Back Button - Only show on specific pages */}
+              {location.pathname.startsWith("/customers/") && (
+                <button
+                  onClick={() => navigate("/customers")}
+                  className="flex items-center gap-4 hover:opacity-80 transition-opacity"
+                >
+                  <svg
+                    width="13"
+                    height="10"
+                    viewBox="0 0 13 10"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      clipRule="evenodd"
+                      d="M4.3871 0.209705L4.29289 0.292893L0.292893 4.29289C-0.0675907 4.65338 -0.0953203 5.22061 0.209705 5.6129L0.292893 5.70711L4.29289 9.70711C4.68342 10.0976 5.31658 10.0976 5.70711 9.70711C6.06759 9.34662 6.09532 8.77939 5.7903 8.3871L5.70711 8.29289L3.414 5.999L12 6C12.5523 6 13 5.55228 13 5C13 4.44772 12.5523 4 12 4L3.416 3.999L5.70711 1.70711C6.06759 1.34662 6.09532 0.779392 5.7903 0.387101L5.70711 0.292893C5.34662 -0.0675907 4.77939 -0.0953203 4.3871 0.209705Z"
+                      fill="#7E84A3"
+                    />
+                  </svg>
+                  <h1 className="text-lg sm:text-[22px] font-lato font-bold text-[#023337] leading-normal tracking-[0.11px]">
+                    {getPageTitle(location.pathname)}
+                  </h1>
+                </button>
+              )}
+
               {/* Dynamic Page Title */}
-              <h1 className="text-lg sm:text-[22px] font-lato font-bold text-[#023337] leading-normal tracking-[0.11px]">
-                {getPageTitle(location.pathname)}
-              </h1>
+              {!location.pathname.startsWith("/customers/") && (
+                <h1 className="text-lg sm:text-[22px] font-lato font-bold text-[#023337] leading-normal tracking-[0.11px]">
+                  {getPageTitle(location.pathname)}
+                </h1>
+              )}
             </div>
 
             <div className="flex items-center gap-4 sm:gap-9">
