@@ -1,15 +1,13 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  Bell,
-  Search,
-  ChevronDown,
-  Menu,
-  X,
-  MessageSquare,
-} from "lucide-react";
+import { Bell, ChevronDown, Menu, X, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { size } from "zod/v4";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 interface LayoutProps {
   children: ReactNode;
@@ -403,7 +401,7 @@ export function Layout({ children }: LayoutProps) {
   ];
 
   const userItems = [
-    { path: "/profile", label: "Profile", icon: ProfileIcon },
+    { path: "/admins", label: "Admins", icon: ProfileIcon },
     { path: "/customers", label: "Customers", icon: CustomersIcon },
     { path: "/delivery", label: "Delivery guys", icon: DeliveryIcon },
     { path: "/settings", label: "Settings", icon: SettingsIcon },
@@ -520,7 +518,7 @@ export function Layout({ children }: LayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 min-[1200px]:ml-[270px] w-full">
+      <div className="flex-1 min-[1200px]:ml-[270px] min-w-0">
         {/* Header */}
         <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
           <div className="flex items-center justify-between px-4 sm:px-7 py-5">
@@ -568,31 +566,6 @@ export function Layout({ children }: LayoutProps) {
             </div>
 
             <div className="flex items-center gap-4 sm:gap-9">
-              {/* Search - Hidden on mobile */}
-              <div className="hidden md:block relative w-[300px] lg:w-[387px]">
-                <div className="relative group">
-                  <div className="absolute left-[13px] top-1/2 -translate-y-1/2 w-0.5 h-[26px] bg-[#2D9CDB] opacity-0 group-focus-within:opacity-100 transition-opacity" />
-                  <input
-                    type="text"
-                    placeholder="Search here"
-                    className="w-full h-12 px-[22px] pl-[13px] pr-14 rounded-[11px] bg-[#F5F6FA] border-0 text-base text-[#969BA0] font-nunito placeholder:text-[#969BA0] focus:outline-none caret-[#2D9CDB]"
-                  />
-                  <svg
-                    className="absolute right-[22px] top-1/2 -translate-y-1/2 w-6 h-6"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M21.5306 20.4696L16.8365 15.7765C18.1971 14.1431 18.8755 12.048 18.7307 9.92715C18.5859 7.80629 17.629 5.82289 16.0591 4.38956C14.4892 2.95623 12.4271 2.18333 10.3019 2.23163C8.17663 2.27993 6.15181 3.14571 4.64864 4.64888C3.14547 6.15205 2.27968 8.17687 2.23138 10.3021C2.18308 12.4274 2.95599 14.4894 4.38932 16.0593C5.82265 17.6293 7.80604 18.5861 9.92691 18.7309C12.0478 18.8757 14.1428 18.1973 15.7762 16.8368L20.4693 21.5308C20.539 21.6005 20.6218 21.6558 20.7128 21.6935C20.8038 21.7312 20.9014 21.7506 21 21.7506C21.0985 21.7506 21.1961 21.7312 21.2871 21.6935C21.3782 21.6558 21.4609 21.6005 21.5306 21.5308C21.6003 21.4612 21.6556 21.3784 21.6933 21.2874C21.731 21.1963 21.7504 21.0988 21.7504 21.0002C21.7504 20.9017 21.731 20.8041 21.6933 20.713C21.6556 20.622 21.6003 20.5393 21.5306 20.4696ZM3.74997 10.5002C3.74997 9.16519 4.14585 7.86015 4.88755 6.75011C5.62925 5.64008 6.68346 4.77492 7.91686 4.26403C9.15026 3.75314 10.5075 3.61946 11.8168 3.87991C13.1262 4.14036 14.3289 4.78324 15.2729 5.72724C16.2169 6.67125 16.8598 7.87398 17.1203 9.18335C17.3807 10.4927 17.2471 11.8499 16.7362 13.0833C16.2253 14.3167 15.3601 15.3709 14.2501 16.1126C13.14 16.8543 11.835 17.2502 10.5 17.2502C8.71037 17.2482 6.99463 16.5364 5.72919 15.271C4.46375 14.0056 3.75196 12.2898 3.74997 10.5002Z"
-                      fill="#50555C"
-                    />
-                  </svg>
-                </div>
-              </div>
-
               {/* Notifications */}
               <div className="relative w-12 h-[53px]">
                 <div className="absolute left-0 top-[5px] w-12 h-12 rounded-[11px] bg-[#F5F6FA] flex items-center justify-center cursor-pointer hover:bg-[#E6E9F4] transition-colors">
@@ -644,22 +617,33 @@ export function Layout({ children }: LayoutProps) {
               </div>
 
               {/* User Profile - Simplified on mobile */}
-              <div className="flex items-center gap-2.5">
-                <div className="hidden sm:block text-right">
-                  <p className="text-sm font-nunito font-medium text-black leading-[18px]">
-                    Jonathan Smith
-                  </p>
-                  <p className="text-xs font-nunito font-medium text-[#898A8D] leading-[18px]">
-                    Admin
-                  </p>
-                </div>
-                <img
-                  src="https://api.builder.io/api/v1/image/assets/TEMP/1f1d95314b8090d90aa089edbead733e09fd534c?width=96"
-                  alt="User Avatar"
-                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover"
-                />
-                <ChevronDown className="w-5 h-5 text-[#50555C] hidden sm:block" />
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+                    <div className="hidden sm:block text-right">
+                      <p className="text-sm font-nunito font-medium text-black leading-[18px]">
+                        Jonathan Smith
+                      </p>
+                      <p className="text-xs font-nunito font-medium text-[#898A8D] leading-[18px]">
+                        Admin
+                      </p>
+                    </div>
+                    <img
+                      src="https://api.builder.io/api/v1/image/assets/TEMP/1f1d95314b8090d90aa089edbead733e09fd534c?width=96"
+                      alt="User Avatar"
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover"
+                    />
+                    <ChevronDown className="w-5 h-5 text-[#50555C] hidden sm:block" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="flex w-full cursor-pointer">
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>

@@ -7,10 +7,16 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest --run",
+    "update-api-client": "powershell -ExecutionPolicy Bypass -File ./scripts/generate-api.ps1",
+    "update-api-client:unix": "bash ./scripts/generate-api.sh",
+    "update-api-client:pwsh": "pwsh -ExecutionPolicy Bypass -File ./scripts/generate-api.ps1",
+    "generate-api": "npm run update-api-client",
     "typecheck": "tsc"
   },
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",
+    "axios": "^1.12.2",
+    "openapi-generator-cli": "^1.0.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -47,6 +53,7 @@
     "@swc/core": "^1.13.3",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/react-query": "^5.84.2",
+    "@types/node": "^24.9.1",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
     "@types/three": "^0.176.0",

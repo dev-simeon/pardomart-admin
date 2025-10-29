@@ -1,93 +1,22 @@
-import { useState } from "react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
+import { DataTable } from "@/components/ui/data-table";
+import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
+import type { ColumnDef } from "@tanstack/react-table";
+import { useVendorStores, type Vendor } from "@/hooks/useVendorStores";
+import { useVendorOrders } from "@/hooks/useVendorOrders";
 
-interface SubStore {
-  id: string;
-  address: string;
-  email: string;
-  orders: number;
-  deliveryAvailable: {
+interface SubStoreWithOrders extends Vendor {
+  orders?: number;
+  deliveryAvailable?: {
     pickup: boolean;
     deliveryPerson: boolean;
   };
-  image: string;
 }
 
-const subStoresData: SubStore[] = [
-  {
-    id: "Jewel Osco",
-    address: "3454 South Union Avenue, Il Chicago",
-    email: "Jewelosco12@gmail.com",
-    orders: 454,
-    deliveryAvailable: {
-      pickup: true,
-      deliveryPerson: true,
-    },
-    image:
-      "https://api.builder.io/api/v1/image/assets/TEMP/71dd8da5c1657c64604a217c2453898ecc67a2cd?width=48",
-  },
-  {
-    id: "Jewel Osco",
-    address: "3454 South Union Avenue, Il Chicago",
-    email: "Jewelosco12@gmail.com",
-    orders: 200,
-    deliveryAvailable: {
-      pickup: true,
-      deliveryPerson: true,
-    },
-    image:
-      "https://api.builder.io/api/v1/image/assets/TEMP/71dd8da5c1657c64604a217c2453898ecc67a2cd?width=48",
-  },
-  {
-    id: "Jewel Osco",
-    address: "3454 South Union Avenue, Il Chicago",
-    email: "Jewelosco12@gmail.com",
-    orders: 23,
-    deliveryAvailable: {
-      pickup: true,
-      deliveryPerson: true,
-    },
-    image:
-      "https://api.builder.io/api/v1/image/assets/TEMP/71dd8da5c1657c64604a217c2453898ecc67a2cd?width=48",
-  },
-  {
-    id: "Jewel Osco",
-    address: "3454 South Union Avenue, Il Chicago",
-    email: "Jewelosco12@gmail.com",
-    orders: 600,
-    deliveryAvailable: {
-      pickup: true,
-      deliveryPerson: true,
-    },
-    image:
-      "https://api.builder.io/api/v1/image/assets/TEMP/71dd8da5c1657c64604a217c2453898ecc67a2cd?width=48",
-  },
-  {
-    id: "Jewel Osco",
-    address: "3454 South Union Avenue, Il Chicago",
-    email: "Jewelosco12@gmail.com",
-    orders: 234,
-    deliveryAvailable: {
-      pickup: true,
-      deliveryPerson: true,
-    },
-    image:
-      "https://api.builder.io/api/v1/image/assets/TEMP/71dd8da5c1657c64604a217c2453898ecc67a2cd?width=48",
-  },
-  {
-    id: "Jewel Osco",
-    address: "3454 South Union Avenue, Il Chicago",
-    email: "Jewelosco12@gmail.com",
-    orders: 333,
-    deliveryAvailable: {
-      pickup: true,
-      deliveryPerson: true,
-    },
-    image:
-      "https://api.builder.io/api/v1/image/assets/TEMP/71dd8da5c1657c64604a217c2453898ecc67a2cd?width=48",
-  },
-];
+interface SubStoresTableProps {
+  userId: string;
+}
 
 const ExportIcon = () => (
   <svg
@@ -231,165 +160,163 @@ const PickupIcon = () => (
   </svg>
 );
 
-export function SubStoresTable() {
-  const [currentPage, setCurrentPage] = useState(1);
+interface OrderCountCellProps {
+  vendorId: string;
+}
+
+function OrderCountCell({ vendorId }: OrderCountCellProps) {
+  const { totalCount, loading } = useVendorOrders({ vendorId });
 
   return (
-    <div className="w-full overflow-hidden rounded-2xl bg-white p-7">
-      <div className="flex w-full flex-col items-start gap-[29px]">
-        <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-1 rounded-md bg-[#D2EAE3] px-[14px] py-2.5">
-            <span className="font-lato text-[15px] font-normal leading-5 text-black">
-              All stores
-            </span>
-            <span className="font-lato text-[14px] font-bold leading-normal text-[#4EA674]">
-              (7)
-            </span>
-          </div>
+    <span className="font-sans text-[15px] font-normal text-black">
+      {loading ? "..." : totalCount}
+    </span>
+  );
+}
 
-          <div className="flex items-center gap-2.5">
-            <button className="flex items-center gap-2.5 rounded-lg border border-[#D1D5DB] px-[17px] py-2.5 transition-colors hover:bg-gray-50">
-              <ExportIcon />
-              <span className="font-sans text-[14px] font-normal text-[#06888C]">
-                Export
-              </span>
-            </button>
+export function SubStoresTable({ userId }: SubStoresTableProps) {
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [searchColumn, setSearchColumn] = useState("name");
+  const [searchValue, setSearchValue] = useState("");
+  const [showToolbar, setShowToolbar] = useState(true);
 
-            <div className="flex items-center">
-              <div className="flex items-center gap-2.5 rounded-l-[10px] border border-r-0 border-[#DBDBDB] px-2.5 py-2.5">
-                <span className="font-sans text-[14px] font-normal text-[#656565]">
-                  Search by
-                </span>
-                <ArrowDownIcon />
-              </div>
-              <input
-                type="text"
-                placeholder="Search anything"
-                className="h-10 w-[200px] rounded-r-[10px] border border-[#DBDBDB] px-2.5 py-2.5 font-sans text-[14px] text-[#656565] placeholder:text-[#656565] outline-none transition-colors focus:border-[#06888C]"
+  const { stores, loading, totalCount } = useVendorStores({
+    userId,
+    page: pagination.pageIndex + 1,
+    size: pagination.pageSize,
+  });
+
+  const pageSize = 10;
+
+  const columns = useMemo<ColumnDef<SubStoreWithOrders>[]>(
+    () => [
+      {
+        accessorKey: "name",
+        header: "Store ID",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-[11px] min-w-[200px]">
+            {row.original.image && (
+              <img
+                src={row.original.image}
+                alt={row.original.name}
+                className="h-[30px] w-[30px] rounded-2xl object-cover flex-shrink-0"
               />
-            </div>
-
-            <button className="flex items-center gap-2.5 rounded-lg border border-[#D1D5DB] px-[14px] py-2.5 transition-colors hover:bg-gray-50">
-              <FilterIcon />
-              <span className="font-sans text-[14px] font-normal text-[#06888C]">
-                Filter by
+            )}
+            <span className="font-sans text-[15px] font-normal text-black truncate">
+              {row.original.name || "N/A"}
+            </span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "address",
+        header: "Address",
+        cell: ({ row }) => (
+          <span className="truncate max-w-[150px] text-sm">{row.original.address || "N/A"}</span>
+        ),
+      },
+      {
+        accessorKey: "email",
+        header: "Email Address",
+        cell: ({ row }) => (
+          <span className="truncate">{row.original.email || "N/A"}</span>
+        ),
+      },
+      {
+        id: "orders",
+        header: "Orders",
+        cell: ({ row }) => (
+          <div className="min-w-[100px]">
+            <OrderCountCell vendorId={row.original.id} />
+          </div>
+        ),
+      },
+      {
+        id: "deliveryAvailable",
+        header: "Delivery Available",
+        cell: () => (
+          <div className="flex items-center gap-1 min-w-[280px] flex-wrap">
+            <div className="flex items-center gap-[6px] rounded-lg bg-[#E5FFEA] px-2.5 py-[6px]">
+              <PickupIcon />
+              <span className="font-sans text-[10px] font-semibold text-black whitespace-nowrap">
+                Pick up
               </span>
+            </div>
+            <div className="flex items-center gap-[6px] rounded-lg bg-[rgba(255,221,161,0.5)] px-2.5 py-[6px]">
+              <img
+                src="/delivery-person.svg"
+                alt="Delivery Person"
+                className="w-4 h-4"
+              />
+              <span className="font-sans text-[10px] font-semibold text-black whitespace-nowrap">
+                Delivery Person
+              </span>
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: "actions",
+        header: "Action",
+        cell: () => (
+          <div className="flex items-center gap-2">
+            <button className="transition-opacity hover:opacity-70">
+              <MessageIcon />
+            </button>
+            <button className="transition-opacity hover:opacity-70">
+              <TrashIcon />
             </button>
           </div>
-        </div>
+        ),
+      },
+    ],
+    [],
+  );
 
-        <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-[1024px] border-separate border-spacing-0">
-            <thead>
-              <tr>
-                <th className="rounded-l-md bg-[#D2EAE3] pl-7 py-[17px] text-left">
-                  <div className="flex items-center gap-2.5">
-                    <Checkbox className="h-4 w-4 rounded border-[#707070]" />
-                    <span className="font-sans text-[15px] font-bold leading-5 text-[#023337]">
-                      Store ID
-                    </span>
-                  </div>
-                </th>
-                <th className="bg-[#D2EAE3] py-[17px] text-left">
-                  <span className="font-sans text-[15px] font-bold leading-5 text-[#023337]">
-                    Address
-                  </span>
-                </th>
-                <th className="bg-[#D2EAE3] py-[17px] text-left">
-                  <span className="font-sans text-[15px] font-bold leading-5 text-[#023337]">
-                    Email Address
-                  </span>
-                </th>
-                <th className="bg-[#D2EAE3] py-[17px] text-left">
-                  <span className="font-sans text-[15px] font-bold leading-5 text-[#023337]">
-                    Orders
-                  </span>
-                </th>
-                <th className="bg-[#D2EAE3] py-[17px] text-left">
-                  <span className="font-sans text-[15px] font-bold leading-5 text-[#023337]">
-                    Delivery Available
-                  </span>
-                </th>
-                <th className="rounded-r-md bg-[#D2EAE3] py-[17px] pr-7 text-left">
-                  <span className="font-sans text-[15px] font-bold leading-5 text-[#023337]">
-                    Action
-                  </span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {subStoresData.map((store, index) => (
-                <tr
-                  key={index}
-                  className="border-b border-[#D1D5DB] transition-colors hover:bg-gray-50"
-                >
-                  <td className="pl-7 py-[17px] min-w-[200px]">
-                    <div className="flex items-center gap-[11px]">
-                      <img
-                        src={store.image}
-                        alt={store.id}
-                        className="h-[30px] w-[30px] rounded-2xl object-cover"
-                      />
-                      <span className="font-sans text-[15px] font-normal text-black">
-                        {store.id}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-[17px] w-[250px]">
-                    <span className="font-sans text-[15px] font-normal text-black">
-                      {store.address}
-                    </span>
-                  </td>
-                  <td className="py-[17px] min-w-[200px]">
-                    <span className="font-sans text-[15px] font-normal text-black">
-                      {store.email}
-                    </span>
-                  </td>
-                  <td className="py-[17px] min-w-[80px]">
-                    <span className="font-sans text-[15px] font-normal text-black">
-                      {store.orders}
-                    </span>
-                  </td>
-                  <td className="py-[17px] min-w-[250px]">
-                    <div className="flex items-center gap-1">
-                      {store.deliveryAvailable.pickup && (
-                        <div className="flex items-center gap-[6px] rounded-lg bg-[#E5FFEA] px-2.5 py-[6px]">
-                          <PickupIcon />
-                          <span className="font-sans text-[10px] font-semibold text-black">
-                            Pick up
-                          </span>
-                        </div>
-                      )}
-                      {store.deliveryAvailable.deliveryPerson && (
-                        <div className="flex items-center gap-[6px] rounded-lg bg-[rgba(255,221,161,0.5)] px-2.5 py-[6px]">
-                          <img
-                            src="/delivery-person.svg"
-                            alt="Delivery Person"
-                            className="w-4 h-4"
-                          />
-                          <span className="font-sans text-[10px] font-semibold text-black">
-                            Delivery Person
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-[17px] pr-7">
-                    <div className="flex items-center gap-2">
-                      <button className="transition-opacity hover:opacity-70">
-                        <MessageIcon />
-                      </button>
-                      <button className="transition-opacity hover:opacity-70">
-                        <TrashIcon />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+  const toolbar = showToolbar ? (
+    <DataTableToolbar
+      tabs={[{ id: "all", label: "All stores", count: totalCount }]}
+      activeTab="all"
+      onTabChange={(id) => console.log("Tab changed to:", id)}
+      searchOptions={[
+        { value: "name", label: "Search by Store Name" },
+        { value: "address", label: "Search by Address" },
+        { value: "email", label: "Search by Email" },
+      ]}
+      searchColumn={searchColumn}
+      onSearchColumnChange={setSearchColumn}
+      searchValue={searchValue}
+      onSearchValueChange={setSearchValue}
+      onExport={() => console.log("Export substores")}
+      onFilter={() => console.log("Filter substores")}
+    />
+  ) : null;
+
+  const toggleToolbarButton = (
+    <button
+      onClick={() => setShowToolbar(!showToolbar)}
+      className="absolute top-4 right-4 z-10 p-2 rounded-full bg-gray-100 hover:bg-gray-200"
+    >
+      {showToolbar ? "Hide Toolbar" : "Show Toolbar"}
+    </button>
+  );
+
+  return (
+    <div className="w-full">
+      <DataTable
+        columns={columns}
+        data={stores}
+        loading={loading}
+        toolbar={toolbar}
+        wrapperClassName="bg-white"
+        enableRowSelection
+        pageIndex={pagination.pageIndex}
+        pageSize={pagination.pageSize}
+        onPaginationChange={setPagination}
+        pageCount={Math.ceil(totalCount / pagination.pageSize)}
+        getRowId={(row) => row.id}
+        children={toggleToolbarButton}
+      />
     </div>
   );
 }

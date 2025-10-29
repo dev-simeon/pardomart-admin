@@ -1,17 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  ChevronDown,
-  MessageSquare,
-  Trash2,
-  Download,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import type { ColumnDef, Row } from "@tanstack/react-table";
 import { OrderStatCard } from "@/components/orders/OrderStatCard";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
+import { useOrders } from "@/hooks/useOrders";
+import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
 import { cn } from "@/lib/utils";
+import { DataTable } from "@/components/ui/data-table";
 
 const OrdersIcon = () => (
   <svg
@@ -91,77 +85,6 @@ const TrashIcon = () => (
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-    />
-  </svg>
-);
-
-const ProductsIcon = () => (
-  <svg
-    width="22"
-    height="22"
-    viewBox="0 0 22 22"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <g clipPath="url(#clip0_1324_2338)">
-      <path
-        d="M14.4375 0.0214844L22 3.80273V12.2354L20.625 11.5479V5.33887L15.125 8.08887V10.8604L13.75 11.5479V8.08887L8.25 5.33887V7.77734L6.875 7.08984V3.80273L14.4375 0.0214844ZM14.4375 6.89648L16.3389 5.94043L11.3652 3.09375L9.09863 4.23242L14.4375 6.89648ZM17.8213 5.20996L19.7764 4.23242L14.4375 1.55762L12.8369 2.36328L17.8213 5.20996ZM12.375 12.2354L11 12.9229V12.9121L6.875 14.9746V19.8623L11 17.7891V19.3359L6.1875 21.7422L0 18.6377V11.376L6.1875 8.28223L12.375 11.376V12.2354ZM5.5 19.8623V14.9746L1.375 12.9121V17.7891L5.5 19.8623ZM6.1875 13.7822L10.1514 11.8057L6.1875 9.81836L2.22363 11.8057L6.1875 13.7822ZM12.375 13.7715L17.1875 11.3652L22 13.7715V19.4326L17.1875 21.8389L12.375 19.4326V13.7715ZM16.5 19.959V16.6826L13.75 15.3076V18.584L16.5 19.959ZM20.625 18.584V15.3076L17.875 16.6826V19.959L20.625 18.584ZM17.1875 15.4902L19.7764 14.1904L17.1875 12.9014L14.5986 14.1904L17.1875 15.4902Z"
-        fill="#6A717F"
-      />
-    </g>
-    <defs>
-      <clipPath id="clip0_1324_2338">
-        <rect width="22" height="22" fill="white" />
-      </clipPath>
-    </defs>
-  </svg>
-);
-
-const InStockIcon = () => (
-  <svg
-    width="22"
-    height="22"
-    viewBox="0 0 22 22"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M19.25 6.41602V10.9993M2.75 6.41602V15.7303C2.75 16.998 4.53383 17.7515 8.10058 19.2576C9.53333 19.8635 10.2502 20.166 11 20.166V10.4081M13.75 17.416C13.75 17.416 14.5521 17.416 15.3542 19.2493C15.3542 19.2493 17.9025 14.666 20.1667 13.7493"
-      stroke="#6A717F"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M5.5 10.9997L7.33333 11.9163M15.5833 3.66634L6.41667 8.24967M7.63217 8.88309L4.95458 7.58784C3.48517 6.87651 2.75 6.52084 2.75 5.95801C2.75 5.39517 3.48517 5.03951 4.95458 4.32817L7.63125 3.03292C9.28583 2.23267 10.1108 1.83301 11 1.83301C11.8892 1.83301 12.7151 2.23267 14.3678 3.03292L17.0454 4.32817C18.5148 5.03951 19.25 5.39517 19.25 5.95801C19.25 6.52084 18.5148 6.87651 17.0454 7.58784L14.3688 8.88309C12.7142 9.68334 11.8892 10.083 11 10.083C10.1108 10.083 9.28492 9.68334 7.63217 8.88309Z"
-      stroke="#6A717F"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-const CancelledIcon = () => (
-  <svg
-    width="22"
-    height="22"
-    viewBox="0 0 22 22"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M11 20.1663C10.2502 20.1663 9.53333 19.8638 8.10058 19.2607C4.53383 17.7583 2.75 17.0075 2.75 15.7434V6.91317M11 20.1663C11.7498 20.1663 12.4667 19.8638 13.8994 19.2607C17.4662 17.7583 19.25 17.0075 19.25 15.7434V6.91317M11 20.1663V11.0272M2.75 6.91317C2.75 7.47509 3.48517 7.82984 4.95458 8.53842L7.63125 9.83092C9.28492 10.6284 10.1108 11.0272 11 11.0272M2.75 6.91317C2.75 6.35217 3.48517 5.99742 4.95458 5.28884L6.41667 4.58301M19.25 6.91317C19.25 7.47509 18.5148 7.82984 17.0454 8.53842L14.3688 9.83092C12.7151 10.6284 11.8892 11.0272 11 11.0272M19.25 6.91317C19.25 6.35217 18.5148 5.99742 17.0454 5.28884L15.5833 4.58301M5.5 11.9402L7.33333 12.8541"
-      stroke="#6A717F"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M9.16675 1.83301L11.0001 3.66634M11.0001 3.66634L12.8334 5.49967M11.0001 3.66634L9.16675 5.49967M11.0001 3.66634L12.8334 1.83301"
-      stroke="#6A717F"
-      strokeWidth="1.5"
-      strokeLinecap="round"
     />
   </svg>
 );
@@ -251,137 +174,217 @@ const ArrowRightIcon = () => (
   </svg>
 );
 
+const ProductsIcon = () => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 22 22"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <g clipPath="url(#clip0_1324_2338)">
+      <path
+        d="M14.4375 0.0214844L22 3.80273V12.2354L20.625 11.5479V5.33887L15.125 8.08887V10.8604L13.75 11.5479V8.08887L8.25 5.33887V7.77734L6.875 7.08984V3.80273L14.4375 0.0214844ZM14.4375 6.89648L16.3389 5.94043L11.3652 3.09375L9.09863 4.23242L14.4375 6.89648ZM17.8213 5.20996L19.7764 4.23242L14.4375 1.55762L12.8369 2.36328L17.8213 5.20996ZM12.375 12.2354L11 12.9229V12.9121L6.875 14.9746V19.8623L11 17.7891V19.3359L6.1875 21.7422L0 18.6377V11.376L6.1875 8.28223L12.375 11.376V12.2354ZM5.5 19.8623V14.9746L1.375 12.9121V17.7891L5.5 19.8623ZM6.1875 13.7822L10.1514 11.8057L6.1875 9.81836L2.22363 11.8057L6.1875 13.7822ZM12.375 13.7715L17.1875 11.3652L22 13.7715V19.4326L17.1875 21.8389L12.375 19.4326V13.7715ZM16.5 19.959V16.6826L13.75 15.3076V18.584L16.5 19.959ZM20.625 18.584V15.3076L17.875 16.6826V19.959L20.625 18.584ZM17.1875 15.4902L19.7764 14.1904L17.1875 12.9014L14.5986 14.1904L17.1875 15.4902Z"
+        fill="#6A717F"
+      />
+    </g>
+    <defs>
+      <clipPath id="clip0_1324_2338">
+        <rect width="22" height="22" fill="white" />
+      </clipPath>
+    </defs>
+  </svg>
+);
+
+const InStockIcon = () => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 22 22"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M19.25 6.41602V10.9993M2.75 6.41602V15.7303C2.75 16.998 4.53383 17.7515 8.10058 19.2576C9.53333 19.8635 10.2502 20.166 11 20.166V10.4081M13.75 17.416C13.75 17.416 14.5521 17.416 15.3542 19.2493C15.3542 19.2493 17.9025 14.666 20.1667 13.7493"
+      stroke="#6A717F"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M5.5 10.9997L7.33333 11.9163M15.5833 3.66634L6.41667 8.24967M7.63217 8.88309L4.95458 7.58784C3.48517 6.87651 2.75 6.52084 2.75 5.95801C2.75 5.39517 3.48517 5.03951 4.95458 4.32817L7.63125 3.03292C9.28583 2.23267 10.1108 1.83301 11 1.83301C11.8892 1.83301 12.7151 2.23267 14.3678 3.03292L17.0454 4.32817C18.5148 5.03951 19.25 5.39517 19.25 5.95801C19.25 6.52084 18.5148 6.87651 17.0454 7.58784L14.3688 8.88309C12.7142 9.68334 11.8892 10.083 11 10.083C10.1108 10.083 9.28492 9.68334 7.63217 8.88309Z"
+      stroke="#6A717F"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const CancelledIcon = () => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 22 22"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M11 20.1663C10.2502 20.1663 9.53333 19.8638 8.10058 19.2607C4.53383 17.7583 2.75 17.0075 2.75 15.7434V6.91317M11 20.1663C11.7498 20.1663 12.4667 19.8638 13.8994 19.2607C17.4662 17.7583 19.25 17.0075 19.25 15.7434V6.91317M11 20.1663V11.0272M2.75 6.91317C2.75 7.47509 3.48517 7.82984 4.95458 8.53842L7.63125 9.83092C9.28492 10.6284 10.1108 11.0272 11 11.0272M2.75 6.91317C2.75 6.35217 3.48517 5.99742 4.95458 5.28884L6.41667 4.58301M19.25 6.91317C19.25 7.47509 18.5148 7.82984 17.0454 8.53842L14.3688 9.83092C12.7151 10.6284 11.8892 11.0272 11 11.0272M19.25 6.91317C19.25 6.35217 18.5148 5.99742 17.0454 5.28884L15.5833 4.58301M5.5 11.9402L7.33333 12.8541"
+      stroke="#6A717F"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M9.16675 1.83301L11.0001 3.66634M11.0001 3.66634L12.8334 5.49967M11.0001 3.66634L9.16675 5.49967M11.0001 3.66634L12.8334 1.83301"
+      stroke="#6A717F"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+const searchableColumns = ["id", "customer", "date"] as const;
+type SearchableColumn = (typeof searchableColumns)[number];
+
 type OrderStatus = "shipped" | "ready" | "delivered";
 type PaymentStatus = "paid" | "pending";
 
-interface Order {
-  id: string;
-  customer: string;
-  date: string;
-  paymentStatus: PaymentStatus;
-  orderStatus: OrderStatus;
-  total: string;
-}
-
-const mockOrders: Order[] = [
-  {
-    id: "#543214BB",
-    customer: "Damilola Kingsley",
-    date: "12th Aug, 2025",
-    paymentStatus: "paid",
-    orderStatus: "shipped",
-    total: "$154.33",
-  },
-  {
-    id: "#543214BB",
-    customer: "Damilola Kingsley",
-    date: "12th Aug, 2025",
-    paymentStatus: "pending",
-    orderStatus: "ready",
-    total: "$154.33",
-  },
-  {
-    id: "#543214BB",
-    customer: "Damilola Kingsley",
-    date: "12th Aug, 2025",
-    paymentStatus: "paid",
-    orderStatus: "shipped",
-    total: "$154.33",
-  },
-  {
-    id: "#543214BB",
-    customer: "Damilola Kingsley",
-    date: "12th Aug, 2025",
-    paymentStatus: "paid",
-    orderStatus: "delivered",
-    total: "$154.33",
-  },
-  {
-    id: "#543214BB",
-    customer: "Damilola Kingsley",
-    date: "12th Aug, 2025",
-    paymentStatus: "pending",
-    orderStatus: "ready",
-    total: "$154.33",
-  },
-  {
-    id: "#543214BB",
-    customer: "Damilola Kingsley",
-    date: "12th Aug, 2025",
-    paymentStatus: "paid",
-    orderStatus: "delivered",
-    total: "$154.33",
-  },
-  {
-    id: "#543214BB",
-    customer: "Damilola Kingsley",
-    date: "12th Aug, 2025",
-    paymentStatus: "pending",
-    orderStatus: "ready",
-    total: "$154.33",
-  },
-];
-
 export default function Orders() {
   const navigate = useNavigate();
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [searchColumn, setSearchColumn] = useState<SearchableColumn>("id");
+  const [searchValue, setSearchValue] = useState("");
 
-  const getOrderStatusColor = (status: OrderStatus) => {
-    switch (status) {
-      case "shipped":
-        return "bg-[#5A607F] text-white";
-      case "ready":
-        return "bg-[rgba(254,189,68,0.20)] text-[#EE9C03]";
-      case "delivered":
-        return "bg-[#C4F8E2] text-[#06A561]";
-    }
+  const { orders, loading, error, total, totalPages } = useOrders({
+    page: pagination.pageIndex + 1,
+    size: pagination.pageSize,
+  });
+
+  const filteredOrders = useMemo(() => {
+    if (!searchValue) return orders;
+
+    const searchLower = searchValue.toLowerCase();
+    return orders.filter((order) => {
+      if (searchColumn === "id" && order.id) {
+        return order.id.toLowerCase().includes(searchLower);
+      }
+      if (searchColumn === "customer" && order.customerId) {
+        return order.customerId.toLowerCase().includes(searchLower);
+      }
+      if (searchColumn === "date" && order.createdAt) {
+        return order.createdAt.toString().includes(searchLower);
+      }
+      return true;
+    });
+  }, [orders, searchColumn, searchValue]);
+
+  const columns = useMemo<ColumnDef<any, unknown>[]>(
+    () => [
+      {
+        accessorKey: "id",
+        header: "Order ID",
+        cell: ({ row }) => row.original.id || "N/A",
+      },
+      {
+        accessorKey: "customerId",
+        header: "Customer",
+        cell: ({ row }) => row.original.customerId || "N/A",
+      },
+      {
+        accessorKey: "createdAt",
+        header: "Date",
+        cell: ({ row }) =>
+          row.original.createdAt
+            ? new Date(row.original.createdAt).toLocaleDateString()
+            : "N/A",
+      },
+      {
+        accessorKey: "paymentStatus",
+        header: "Payment Status",
+        cell: ({ row }) => {
+          const status = row.original.paymentStatus || "pending";
+          const colorClass =
+            status === "paid"
+              ? "bg-[#C4F8E2] text-[#06A561]"
+              : "bg-[#E6E9F4] text-[#5A607F]";
+          return (
+            <div
+              className={cn(
+                "inline-flex h-6 items-center justify-center rounded px-2 font-sans text-sm font-normal leading-5",
+                colorClass,
+              )}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "status",
+        header: "Order Status",
+        cell: ({ row }) => {
+          const status = row.original.status || "ready";
+          const colorClass =
+            status === "shipped"
+              ? "bg-[#5A607F] text-white"
+              : status === "ready"
+                ? "bg-[rgba(254,189,68,0.20)] text-[#EE9C03]"
+                : status === "delivered"
+                  ? "bg-[#C4F8E2] text-[#06A561]"
+                  : "bg-[#E6E9F4] text-[#5A607F]";
+          return (
+            <div
+              className={cn(
+                "inline-flex h-6 items-center justify-center rounded px-2 font-sans text-sm font-normal leading-5",
+                colorClass,
+              )}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "totalAmount",
+        header: "Total",
+        cell: ({ row }) => `$${row.original.totalAmount?.toFixed(2) || "0.00"}`,
+      },
+      {
+        id: "actions",
+        header: "Action",
+        cell: () => (
+          <div className="flex items-center gap-2">
+            <button className="text-[#6A717F] hover:text-[#023337]">
+              <MessageIcon />
+            </button>
+            <button className="text-[#6A717F] hover:text-red-600">
+              <TrashIcon />
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [],
+  );
+
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   };
 
-  const getPaymentStatusColor = (status: PaymentStatus) => {
-    switch (status) {
-      case "paid":
-        return "bg-[#C4F8E2] text-[#06A561]";
-      case "pending":
-        return "bg-[#E6E9F4] text-[#5A607F]";
-    }
-  };
-
-  const getOrderStatusText = (status: OrderStatus) => {
-    switch (status) {
-      case "shipped":
-        return "Shipped";
-      case "ready":
-        return "Ready";
-      case "delivered":
-        return "Delivered";
-    }
-  };
-
-  const getPaymentStatusText = (status: PaymentStatus) => {
-    switch (status) {
-      case "paid":
-        return "Paid";
-      case "pending":
-        return "Pending";
-    }
-  };
-
-  const toggleOrderSelection = (orderId: string) => {
-    setSelectedOrders((prev) =>
-      prev.includes(orderId)
-        ? prev.filter((id) => id !== orderId)
-        : [...prev, orderId],
+  if (error) {
+    return (
+      <div className="space-y-8">
+        <div className="rounded-2xl bg-white p-7 sm:p-11">
+          <div className="text-center text-red-500">
+            Error loading orders: {error.message}
+          </div>
+        </div>
+      </div>
     );
-  };
-
-  const toggleAllOrders = () => {
-    if (selectedOrders.length === mockOrders.length) {
-      setSelectedOrders([]);
-    } else {
-      setSelectedOrders(mockOrders.map((order) => order.id));
-    }
-  };
+  }
 
   return (
     <div className="space-y-8">
@@ -390,7 +393,7 @@ export default function Orders() {
         <OrderStatCard
           icon={<OrdersIcon />}
           title="Total Orders"
-          value="6,876"
+          value={total.toLocaleString()}
           change="+ 0.03%"
           isPositive={true}
           period="Last 7 days"
@@ -422,202 +425,48 @@ export default function Orders() {
       </div>
 
       {/* Orders Table Section */}
-      <div className="rounded-2xl bg-white p-7 sm:p-11">
-        <div className="space-y-7">
-          {/* Filters and Actions */}
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            {/* Tabs */}
-            <div className="inline-flex items-center gap-1 rounded-lg bg-[#D2EAE3] p-1">
-              <button className="flex items-center justify-center gap-1 rounded-md bg-white px-3 py-1.5 font-sans text-[15px] font-normal leading-5 text-black">
-                All order
-                <span className="ml-1 font-sans text-sm font-bold leading-normal text-[#4EA674]">
-                  (240)
-                </span>
-              </button>
-              <button className="flex items-center justify-center gap-2.5 px-3 py-1.5 font-sans text-base font-normal leading-5 text-[#4B5563]">
-                Completed
-              </button>
-              <button className="flex items-center justify-center gap-2.5 px-3 py-1.5 font-sans text-[15px] font-normal leading-5 text-[#4B5563]">
-                Pending
-              </button>
-              <button className="flex items-center justify-center gap-2.5 px-3 py-1.5 font-sans text-[15px] font-normal leading-5 text-[#4B5563]">
-                Canceled
-              </button>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center gap-2.5">
-              <button className="flex items-center gap-2.5 rounded-lg border border-[#D1D5DB] px-[17px] py-2.5 font-sans text-sm font-normal leading-normal text-[#06888C]">
-                <ExportIcon />
-                Export
-              </button>
-              <div className="flex items-center">
-                <button className="flex items-center gap-2.5 rounded-l-[10px] border border-[#DBDBDB] border-r-0 px-2.5 py-2.5 font-sans text-sm font-normal leading-normal text-[#656565]">
-                  Search by
-                  <ChevronDown className="h-5 w-5" />
-                </button>
-                <input
-                  type="text"
-                  placeholder="Search anything"
-                  className="w-[200px] rounded-r-[10px] border border-[#DBDBDB] px-2.5 py-2.5 font-sans text-sm font-normal leading-normal text-[#656565] placeholder:text-[#656565] focus:border-[#06888C] focus:outline-none"
-                />
-              </div>
-              <button className="flex items-center gap-2.5 rounded-lg border border-[#D1D5DB] px-3.5 py-2.5 font-sans text-sm font-normal leading-normal text-[#06888C]">
-                <FilterIcon />
-                Filter by
-              </button>
-            </div>
-          </div>
-
-          {/* Table Wrapper with horizontal scroll */}
-          <div className="w-full overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="rounded-md bg-[#D2EAE3]">
-                  <th className="px-7 py-[17px] text-left">
-                    <div className="flex items-center gap-2.5">
-                      <Checkbox
-                        checked={selectedOrders.length === mockOrders.length}
-                        onCheckedChange={toggleAllOrders}
-                        className="h-4 w-4 rounded border-[#707070]"
-                      />
-                      <span className="font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                        Order ID
-                      </span>
-                    </div>
-                  </th>
-                  <th className="px-4 py-[17px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                    Customer
-                  </th>
-                  <th className="px-4 py-[17px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                    Date
-                  </th>
-                  <th className="px-4 py-[17px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                    Payment Status
-                  </th>
-                  <th className="px-4 py-[17px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                    Order Status
-                  </th>
-                  <th className="px-4 py-[17px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                    Total
-                  </th>
-                  <th className="px-4 py-[17px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {mockOrders.map((order, index) => (
-                  <tr
-                    key={`${order.id}-${index}`}
-                    className="border-b border-[#D1D5DB] cursor-pointer hover:bg-[#F9FAFB] transition-colors"
-                    onClick={(e) => {
-                      if (
-                        !(e.target as HTMLElement).closest(
-                          'input[type="checkbox"], button',
-                        )
-                      ) {
-                        navigate(`/orders/${order.id}`);
-                      }
-                    }}
-                  >
-                    <td className="px-7 py-5">
-                      <div className="flex items-center gap-2.5">
-                        <Checkbox
-                          checked={selectedOrders.includes(order.id)}
-                          onCheckedChange={() => toggleOrderSelection(order.id)}
-                          className="h-4 w-4 rounded border-[#707070]"
-                        />
-                        <span className="font-sans text-[15px] font-normal leading-normal text-black">
-                          {order.id}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-5 font-sans text-[15px] font-normal leading-normal text-black">
-                      {order.customer}
-                    </td>
-                    <td className="px-4 py-5 font-sans text-[15px] font-normal leading-normal text-black">
-                      {order.date}
-                    </td>
-                    <td className="px-4 py-5">
-                      <div
-                        className={cn(
-                          "inline-flex h-6 items-center justify-center rounded px-2 font-sans text-sm font-normal leading-5",
-                          getPaymentStatusColor(order.paymentStatus),
-                        )}
-                      >
-                        {getPaymentStatusText(order.paymentStatus)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-5">
-                      <div
-                        className={cn(
-                          "inline-flex h-6 items-center justify-center rounded px-2 font-sans text-sm font-normal leading-5",
-                          getOrderStatusColor(order.orderStatus),
-                        )}
-                      >
-                        {getOrderStatusText(order.orderStatus)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-5 font-sans text-[15px] font-normal leading-normal text-black">
-                      {order.total}
-                    </td>
-                    <td className="px-4 py-5">
-                      <div className="flex items-center gap-2">
-                        <button className="text-[#6A717F] hover:text-[#023337]">
-                          <MessageIcon />
-                        </button>
-                        <button className="text-[#6A717F] hover:text-red-600">
-                          <TrashIcon />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:justify-between">
-            <button className="flex h-[42px] items-center justify-center gap-1 rounded-lg bg-white px-3 py-2.5 shadow-[0_1px_3px_0_rgba(0,0,0,0.20)]">
-              <ArrowLeftIcon />
-              <span className="font-sans text-[15px] font-normal leading-normal text-black">
-                Previous
-              </span>
-            </button>
-
-            <div className="flex items-center gap-3">
-              <button className="flex h-9 w-9 items-center justify-center rounded bg-[#D2EAE3] font-sans text-[15px] font-bold leading-normal text-[#023337]">
-                1
-              </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded border border-[#D1D5DB] font-sans text-[15px] font-normal leading-normal text-[#023337]">
-                2
-              </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded border border-[#D1D5DB] font-sans text-[15px] font-normal leading-normal text-[#023337]">
-                3
-              </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded border border-[#D1D5DB] font-sans text-[15px] font-normal leading-normal text-[#023337]">
-                4
-              </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded border border-[#D1D5DB] font-sans text-[15px] font-normal leading-normal text-[#023337]">
-                5
-              </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded border border-[#D1D5DB] font-sans text-[15px] font-bold leading-normal text-[#023337]">
-                .....
-              </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded border border-[#D1D5DB] font-sans text-[15px] font-normal leading-normal text-[#023337]">
-                24
-              </button>
-            </div>
-
-            <button className="flex h-[42px] items-center justify-center gap-1 rounded-lg bg-white px-3 py-2.5 shadow-[0_1px_3px_0_rgba(0,0,0,0.20)]">
-              <span className="font-sans text-[15px] font-normal leading-normal text-black">
-                Next
-              </span>
-              <ArrowRightIcon />
-            </button>
-          </div>
+      <div className="p-0">
+        <div className="space-y-4">
+          <DataTable
+            columns={columns}
+            data={filteredOrders}
+            toolbar={
+              <DataTableToolbar
+                tabs={[
+                  { id: "all", label: "All order", count: total },
+                  { id: "completed", label: "Completed" },
+                  { id: "pending", label: "Pending" },
+                  { id: "canceled", label: "Canceled" },
+                ]}
+                activeTab={"all"}
+                searchOptions={[
+                  { value: "id", label: "Search by Order ID" },
+                  { value: "customer", label: "Search by Customer" },
+                  { value: "date", label: "Search by Date" },
+                ]}
+                searchColumn={searchColumn}
+                onSearchColumnChange={(value) =>
+                  setSearchColumn(value as SearchableColumn)
+                }
+                searchValue={searchValue}
+                onSearchValueChange={handleSearch}
+                onExport={() => console.log("Exporting orders...")}
+                onFilter={() => console.log("Filtering orders...")}
+              />
+            }
+            loading={loading}
+            enableRowSelection
+            onRowClick={(row: Row<any>) =>
+              navigate(`/orders/${row.original.id}`)
+            }
+            manualPagination
+            pageCount={totalPages}
+            pageIndex={pagination.pageIndex}
+            pageSize={pagination.pageSize}
+            onPaginationChange={setPagination}
+            getRowId={(row: any) => row.id}
+            rowClassName={() => "cursor-pointer"}
+          />
         </div>
       </div>
     </div>

@@ -1,8 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown } from "lucide-react";
 import { CustomerStatCard } from "@/components/customers/CustomerStatCard";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useUsersCount } from "@/hooks/useUsersCount";
+import { useUsersByRole } from "@/hooks/useUsersByRole";
+import { Role, type User } from "../../api";
+import type { ColumnDef, Row } from "@tanstack/react-table";
+import { DataTable } from "@/components/ui/data-table";
+import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
+import { useNavigate } from "react-router-dom";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const TotalCustomersIcon = () => (
   <svg
@@ -358,6 +364,76 @@ const mockCustomers: Customer[] = [
 ];
 
 export default function Customers() {
+  const navigate = useNavigate();
+  const { data: totalCustomers, isLoading: loadingCustomers } = useUsersCount(Role.Customer);
+  const totalCustomersDisplay = loadingCustomers ? "..." : (totalCustomers ?? 0).toLocaleString();
+  const [searchValue, setSearchValue] = useState("");
+  const { users, isLoading } = useUsersByRole(Role.Customer, 1, 50);
+
+  const formatDate = (iso?: string) =>
+    iso ? new Date(iso).toLocaleDateString() : "";
+
+  const columns: ColumnDef<User>[] = [
+    {
+      header: "Customer",
+      cell: ({ row }) => {
+        const u = row.original;
+        const initials = (u.name || u.email || "?")
+          .split(" ")
+          .map((s) => s[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase();
+        return (
+          <Link to={`/customers/${u.id ?? ""}`} className="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={undefined} alt={u.name ?? ""} />
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+            <span className="font-sans text-[15px] font-normal leading-normal text-[#131523]">
+              {u.name || "Unknown"}
+            </span>
+          </Link>
+        );
+      },
+      meta: { headerClassName: "min-w-[200px]" },
+    },
+    { accessorKey: "email", header: "Email", meta: { headerClassName: "min-w-[180px]" } },
+    { accessorKey: "mobileNumber", header: "Mobile", meta: { headerClassName: "min-w-[140px]" } },
+    {
+      header: "Status",
+      cell: ({ row }) => (
+        <div className="flex items-center justify-start gap-2.5">
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="4" cy="4" r="4" fill={row.original.active ? "#21C45D" : "#EF4343"} /></svg>
+          <span className="font-sans text-[15px] font-normal leading-normal" style={{ color: row.original.active ? "#21C45D" : "#EF4343" }}>
+            {row.original.active ? "Active" : "Inactive"}
+          </span>
+        </div>
+      ),
+      meta: { headerClassName: "min-w-[120px]" },
+    },
+    {
+      header: "Joined",
+      cell: ({ row }) => formatDate(row.original.createdAt),
+      meta: { headerClassName: "min-w-[140px]" },
+    },
+    {
+      header: "Action",
+      cell: () => (
+        <div className="flex items-center gap-2">
+          <button className="text-[#6A717F] hover:text-[#023337]"><MessageIcon /></button>
+          <button className="text-[#6A717F] hover:text-red-600"><TrashIcon /></button>
+        </div>
+      ),
+      meta: { headerClassName: "min-w-[120px]" },
+    },
+  ];
+
+  const filtered = (users ?? []).filter((u) =>
+    [u.name, u.email, u.mobileNumber]
+      .filter(Boolean)
+      .some((v) => String(v).toLowerCase().includes(searchValue.toLowerCase())),
+  );
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
 
   const toggleCustomerSelection = (customerId: string) => {
@@ -439,7 +515,7 @@ export default function Customers() {
         <CustomerStatCard
           icon={<TotalCustomersIcon />}
           title="Total Customers"
-          value="2,876"
+          value={totalCustomersDisplay}
         />
         <CustomerStatCard
           icon={<NewCustomersIcon />}
@@ -454,179 +530,27 @@ export default function Customers() {
         />
       </div>
 
-      {/* Customers Table Section */}
-      <div className="rounded-2xl bg-white p-7 sm:p-11">
-        <div className="space-y-7">
-          {/* Filters and Actions */}
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            {/* All Customers Tab */}
-            <div className="flex items-center justify-center gap-1 rounded-md bg-[#D2EAE3] px-3.5 py-2.5">
-              <span className="font-lato text-[15px] font-medium leading-5 text-black">
-                All Customers
-              </span>
-              <span className="font-lato text-sm font-bold leading-normal text-[#4EA674]">
-                (1890)
-              </span>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center gap-2.5">
-              <button className="flex items-center gap-2.5 rounded-lg border border-[#D1D5DB] px-[17px] py-2.5 font-sans text-sm font-normal leading-normal text-[#06888C]">
-                <ExportIcon />
-                Export
-              </button>
-              <div className="flex items-center">
-                <button className="flex items-center gap-2.5 rounded-l-[10px] border border-[#DBDBDB] border-r-0 px-2.5 py-2.5 font-sans text-sm font-normal leading-normal text-[#656565]">
-                  Search by
-                  <ChevronDown className="h-5 w-5" />
-                </button>
-                <input
-                  type="text"
-                  placeholder="Search anything"
-                  className="w-[200px] rounded-r-[10px] border border-[#DBDBDB] px-2.5 py-2.5 font-sans text-sm font-normal leading-normal text-[#656565] placeholder:text-[#656565] focus:border-[#06888C] focus:outline-none"
-                />
-              </div>
-              <button className="flex items-center gap-2.5 rounded-lg border border-[#D1D5DB] px-3.5 py-2.5 font-sans text-sm font-normal leading-normal text-[#06888C]">
-                <FilterIcon />
-                Filter by
-              </button>
-            </div>
-          </div>
-
-          {/* Table Wrapper with horizontal scroll */}
-          <div className="w-full overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="rounded-md bg-[#D2EAE3]">
-                  <th className="px-7 py-[13px] text-left min-w-[250px]">
-                    <div className="flex items-center gap-2.5">
-                      <Checkbox
-                        checked={
-                          selectedCustomers.length === mockCustomers.length
-                        }
-                        onCheckedChange={toggleAllCustomers}
-                        className="h-4 w-4 rounded border-[#707070]"
-                      />
-                      <span className="font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                        Customer ID
-                      </span>
-                    </div>
-                  </th>
-                  <th className="px-4 py-[13px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337] min-w-[150px]">
-                    Invoice ID
-                  </th>
-                  <th className="px-4 py-[13px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337] min-w-[150px]">
-                    Status
-                  </th>
-                  <th className="px-4 py-[13px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337] min-w-[120px]">
-                    Amount
-                  </th>
-                  <th className="px-4 py-[13px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337] min-w-[150px]">
-                    Date
-                  </th>
-                  <th className="px-4 py-[13px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337] min-w-[120px]">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {mockCustomers.map((customer) => (
-                  <tr
-                    key={customer.id}
-                    className="border-b border-[#D1D5DB] transition-colors hover:bg-[#F9FAFB]"
-                  >
-                    <td className="px-7 py-[17px]">
-                      <div className="flex items-center gap-2.5">
-                        <Checkbox
-                          checked={selectedCustomers.includes(customer.id)}
-                          onCheckedChange={() =>
-                            toggleCustomerSelection(customer.id)
-                          }
-                          className="h-4 w-4 rounded border-[#707070]"
-                        />
-                        <Link
-                          to={`/customers/${customer.id}`}
-                          className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
-                        >
-                          <img
-                            src={customer.avatar}
-                            alt={customer.name}
-                            className="h-6 w-6 rounded-full object-cover"
-                          />
-                          <span className="font-sans text-[15px] font-normal leading-normal text-[#131523]">
-                            {customer.name}
-                          </span>
-                        </Link>
-                      </div>
-                    </td>
-                    <td className="px-4 py-[17px] font-sans text-[15px] font-normal leading-normal text-black">
-                      {customer.invoiceId}
-                    </td>
-                    <td className="px-4 py-[17px]">
-                      {getStatusDisplay(customer.status)}
-                    </td>
-                    <td className="px-4 py-[17px] font-sans text-[15px] font-normal leading-normal text-black">
-                      {customer.amount}
-                    </td>
-                    <td className="px-4 py-[17px] font-sans text-[15px] font-normal leading-normal text-black">
-                      {customer.date}
-                    </td>
-                    <td className="px-4 py-[17px]">
-                      <div className="flex items-center gap-2">
-                        <button className="text-[#6A717F] hover:text-[#023337]">
-                          <MessageIcon />
-                        </button>
-                        <button className="text-[#6A717F] hover:text-red-600">
-                          <TrashIcon />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:justify-between">
-            <button className="flex h-[42px] items-center justify-center gap-1 rounded-lg bg-white px-3 py-2.5 shadow-[0_1px_3px_0_rgba(0,0,0,0.20)]">
-              <ArrowLeftIcon />
-              <span className="font-sans text-[15px] font-normal leading-normal text-black">
-                Previous
-              </span>
-            </button>
-
-            <div className="flex items-center gap-3">
-              <button className="flex h-9 w-9 items-center justify-center rounded bg-[#D2EAE3] font-sans text-[15px] font-bold leading-normal text-[#023337]">
-                1
-              </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded border border-[#D1D5DB] font-sans text-[15px] font-normal leading-normal text-[#023337]">
-                2
-              </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded border border-[#D1D5DB] font-sans text-[15px] font-normal leading-normal text-[#023337]">
-                3
-              </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded border border-[#D1D5DB] font-sans text-[15px] font-normal leading-normal text-[#023337]">
-                4
-              </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded border border-[#D1D5DB] font-sans text-[15px] font-normal leading-normal text-[#023337]">
-                5
-              </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded border border-[#D1D5DB] font-sans text-[15px] font-bold leading-normal text-[#023337]">
-                .....
-              </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded border border-[#D1D5DB] font-sans text-[15px] font-normal leading-normal text-[#023337]">
-                24
-              </button>
-            </div>
-
-            <button className="flex h-[42px] items-center justify-center gap-1 rounded-lg bg-white px-3 py-2.5 shadow-[0_1px_3px_0_rgba(0,0,0,0.20)]">
-              <span className="font-sans text-[15px] font-normal leading-normal text-black">
-                Next
-              </span>
-              <ArrowRightIcon />
-            </button>
-          </div>
+      <div className="p-0">
+        <div className="space-y-4">
+          <DataTable
+            columns={columns}
+            data={filtered}
+            loading={isLoading}
+            enableRowSelection
+            onRowClick={(row: Row<User>) => navigate(`/customers/${row.original.id}`)}
+            toolbar={
+              <DataTableToolbar
+                tabs={[{ id: "all", label: "All Customers", count: loadingCustomers ? undefined : totalCustomers ?? 0 }]}
+                activeTab={"all"}
+                searchColumn={"name"}
+                onSearchColumnChange={() => {}}
+                searchValue={searchValue}
+                onSearchValueChange={setSearchValue}
+                onExport={() => {}}
+                onFilter={() => {}}
+              />
+            }
+          />
         </div>
       </div>
     </div>

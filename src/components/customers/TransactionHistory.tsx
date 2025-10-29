@@ -1,275 +1,213 @@
-import { cn } from "@/lib/utils";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { useNavigate } from "react-router-dom";
+import { DataTable } from "@/components/ui/data-table";
+import DataTableToolbar from "@/pages/data-table-toolbar";
 import { TransactionDetailsModal } from "@/components/transactions";
+import { useCustomerTransactions } from "@/hooks/useCustomerTransactions";
+import type { Transaction as ApiTransaction } from "../../../api";
 
-type TransactionStatus = "complete" | "cancelled" | "pending";
+export type CustomerTransactionHistoryProps = {
+  customerId: string;
+};
 
-interface Transaction {
+type RowStatus = "complete" | "cancelled" | "pending";
+
+type RowTx = {
   id: string;
   dateTime: string;
   amount: string;
   method: string;
-  status: TransactionStatus;
+  status: RowStatus;
+};
+
+function mapStatus(status?: string | null): RowStatus {
+  const s = (status || "").toString().toLowerCase();
+  if (s.includes("cancel")) return "cancelled";
+  if (s.includes("fail")) return "cancelled";
+  if (s.includes("pend")) return "pending";
+  if (s.includes("success") || s.includes("complete")) return "complete";
+  return "pending";
 }
 
-const mockTransactions: Transaction[] = [
-  {
-    id: "#543214BB",
-    dateTime: "22nd Aug, 2025 & 9:00 PM",
-    amount: "$154.33",
-    method: "EBT",
-    status: "complete" as const,
-  },
-  {
-    id: "#543214BB",
-    dateTime: "22nd Aug, 2025 & 9:00 PM",
-    amount: "$154.33",
-    method: "EBT",
-    status: "complete" as const,
-  },
-  {
-    id: "#543214BB",
-    dateTime: "22nd Aug, 2025 & 9:00 PM",
-    amount: "$154.33",
-    method: "EBT",
-    status: "complete" as const,
-  },
-  {
-    id: "#543214BB",
-    dateTime: "22nd Aug, 2025 & 9:00 PM",
-    amount: "$154.33",
-    method: "EBT",
-    status: "cancelled" as const,
-  },
-  {
-    id: "#543214BB",
-    dateTime: "22nd Aug, 2025 & 9:00 PM",
-    amount: "$154.33",
-    method: "EBT",
-    status: "cancelled" as const,
-  },
-];
+function formatAmount(n?: number) {
+  if (typeof n !== "number" || isNaN(n)) return "N/A";
+  return `$${n.toFixed(2)}`;
+}
 
-export function TransactionHistory() {
-  const [selectedTransactions, setSelectedTransactions] = useState<string[]>(
+function formatDateTime(iso?: string) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const date = d.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  });
+  const time = d.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${date} • ${time}`;
+}
+
+export function TransactionHistory({
+  customerId,
+}: CustomerTransactionHistoryProps) {
+  const navigate = useNavigate();
+  const { transactions, loading } = useCustomerTransactions({
+    customerId,
+    limit: 5,
+  });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selected, setSelected] = useState<RowTx | null>(null);
+
+  const rows: RowTx[] = useMemo(() => {
+    return (transactions || []).map((t: ApiTransaction) => ({
+      id: t.id || "",
+      dateTime: formatDateTime(t.createdAt),
+      amount: formatAmount(t.amount),
+      method:
+        (t.source as unknown as string) || (t.type as unknown as string) || "-",
+      status: mapStatus(t.status as unknown as string),
+    }));
+  }, [transactions]);
+
+  const columns = useMemo<ColumnDef<RowTx, unknown>[]>(
+    () => [
+      {
+        accessorKey: "id",
+        header: "Transaction ID",
+        cell: ({ row }) => row.original.id || "N/A",
+      },
+      {
+        accessorKey: "dateTime",
+        header: "Date & Time",
+        cell: ({ row }) => row.original.dateTime,
+      },
+      {
+        accessorKey: "amount",
+        header: "Amount",
+        cell: ({ row }) => row.original.amount,
+      },
+      {
+        accessorKey: "method",
+        header: "Method",
+        cell: ({ row }) => row.original.method || "-",
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => {
+          const status = row.original.status;
+          const color =
+            status === "complete"
+              ? "#21C45D"
+              : status === "cancelled"
+                ? "#EF4343"
+                : "#FBBD23";
+          const text =
+            status === "complete"
+              ? "Complete"
+              : status === "cancelled"
+                ? "Cancelled"
+                : "Pending";
+          return (
+            <div className="flex items-center justify-start gap-2.5">
+              <svg
+                width="8"
+                height="8"
+                viewBox="0 0 8 8"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle cx="4" cy="4" r="4" fill={color} />
+              </svg>
+              <span
+                className="font-sans text-[15px] font-normal leading-normal"
+                style={{ color }}
+              >
+                {text}
+              </span>
+            </div>
+          );
+        },
+      },
+      {
+        id: "action",
+        header: "Action",
+        cell: ({ row }) => (
+          <button
+            onClick={() => {
+              setSelected(row.original);
+              setIsModalOpen(true);
+            }}
+            className="text-center font-sans text-[15px] font-normal leading-normal text-[#06888C] hover:underline"
+          >
+            View Details
+          </button>
+        ),
+      },
+    ],
     [],
   );
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedTransaction, setSelectedTransaction] = useState<{
-    id: string;
-    date: string;
-    time: string;
-    amount: string;
-    method: string;
-    status: TransactionStatus;
-  } | null>(null);
-
-  const getStatusColor = (status: TransactionStatus) => {
-    switch (status) {
-      case "complete":
-        return "text-[#21C45D]";
-      case "cancelled":
-        return "text-[#EF4343]";
-      case "pending":
-        return "text-[#FBBD23]";
-    }
-  };
-
-  const getStatusText = (status: TransactionStatus) => {
-    switch (status) {
-      case "complete":
-        return "Complete";
-      case "cancelled":
-        return "Cancelled";
-      case "pending":
-        return "Pending";
-    }
-  };
-
-  const toggleTransactionSelection = (transactionId: string) => {
-    setSelectedTransactions((prev) =>
-      prev.includes(transactionId)
-        ? prev.filter((id) => id !== transactionId)
-        : [...prev, transactionId],
-    );
-  };
-
-  const toggleAllTransactions = () => {
-    if (selectedTransactions.length === mockTransactions.length) {
-      setSelectedTransactions([]);
-    } else {
-      setSelectedTransactions(mockTransactions.map((t) => t.id));
-    }
-  };
-
-  const handleViewDetails = (transaction: Transaction) => {
-    const [date, time] = transaction.dateTime.split(" & ");
-    setSelectedTransaction({
-      id: "#654321DB",
-      date: "23rd Aug, 2025",
-      time: "09:00 PM",
-      amount: "$564.66",
-      method: transaction.method,
-      status: transaction.status,
-    });
-    setIsModalOpen(true);
-  };
 
   return (
-    <>
-      <div className="overflow-hidden rounded-2xl bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-7 md:px-11">
-          <div className="inline-flex items-center justify-center gap-1 rounded-md bg-[#D2EAE3] px-3.5 py-2.5">
-            <span className="font-lato text-[15px] font-medium leading-5 text-black">
-              Transaction History
-            </span>
-          </div>
-          <button className="flex items-center gap-3 font-sans text-[15px] font-semibold text-[#06888C] transition-opacity hover:opacity-80">
-            View All
-            <svg
-              width="12"
-              height="11"
-              viewBox="0 0 12 11"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
+    <div className="space-y-4">
+      <DataTable<RowTx, unknown>
+        columns={columns}
+        data={rows}
+        loading={loading}
+        toolbar={
+          <div className="flex w-full items-center justify-between">
+            <div className="inline-flex items-center justify-center gap-1 rounded-md bg-[#D2EAE3] px-3.5 py-2.5">
+              <span className="font-lato text-[15px] font-medium leading-5 text-black">
+                Transaction History
+              </span>
+            </div>
+            <button
+              onClick={() => navigate("/transactions")}
+              className="flex items-center gap-3 font-sans text-[15px] font-semibold text-[#06888C] transition-opacity hover:opacity-80"
             >
-              <path
-                d="M6.58333 9.5L10.75 5.125M10.75 5.125L6.58333 0.75M10.75 5.125H0.75"
-                stroke="#06888C"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-        </div>
-
-        <div className="w-full overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="rounded-md bg-[#D2EAE3]">
-                <th className="px-7 py-[17px] text-left">
-                  <div className="flex items-center gap-2.5">
-                    <Checkbox
-                      checked={
-                        selectedTransactions.length === mockTransactions.length
-                      }
-                      onCheckedChange={toggleAllTransactions}
-                      className="h-4 w-4 rounded border-[#707070]"
-                    />
-                    <span className="font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                      Transaction ID
-                    </span>
-                  </div>
-                </th>
-                <th className="px-4 py-[17px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                  Date & Time
-                </th>
-                <th className="px-4 py-[17px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                  Amount
-                </th>
-                <th className="px-4 py-[17px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                  Method
-                </th>
-                <th className="px-4 py-[17px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                  Status
-                </th>
-                <th className="px-4 py-[17px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {mockTransactions.map((transaction, index) => (
-                <tr
-                  key={`${transaction.id}-${index}`}
-                  className="border-b border-[#D1D5DB]"
-                >
-                  <td className="px-7 py-5">
-                    <div className="flex items-center gap-2.5">
-                      <Checkbox
-                        checked={selectedTransactions.includes(transaction.id)}
-                        onCheckedChange={() =>
-                          toggleTransactionSelection(transaction.id)
-                        }
-                        className="h-4 w-4 rounded border-[#707070]"
-                      />
-                      <span className="font-sans text-[15px] font-normal leading-normal text-black">
-                        {transaction.id}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-5 font-sans text-[15px] font-normal leading-normal text-black">
-                    {transaction.dateTime}
-                  </td>
-                  <td className="px-4 py-5 font-sans text-[15px] font-normal leading-normal text-black">
-                    {transaction.amount}
-                  </td>
-                  <td className="px-4 py-5">
-                    <div className="flex items-center gap-2.5">
-                      <img
-                        src="https://api.builder.io/api/v1/image/assets/TEMP/8f0fdbc45b316f25f25a06374f9d1b2a49e555b1?width=40"
-                        alt="Payment method"
-                        className="h-5 w-5"
-                      />
-                      <span className="font-sans text-[15px] font-normal leading-normal text-black">
-                        {transaction.method}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-5">
-                    <div className="flex items-center justify-start gap-2.5">
-                      <svg
-                        width="8"
-                        height="8"
-                        viewBox="0 0 8 8"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <circle
-                          cx="4"
-                          cy="4"
-                          r="4"
-                          fill={
-                            transaction.status === "complete"
-                              ? "#21C45D"
-                              : transaction.status === "cancelled"
-                                ? "#EF4343"
-                                : "#FBBD23"
-                          }
-                        />
-                      </svg>
-                      <span
-                        className={cn(
-                          "font-sans text-[15px] font-normal leading-normal",
-                          getStatusColor(transaction.status),
-                        )}
-                      >
-                        {getStatusText(transaction.status)}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-5">
-                    <button
-                      onClick={() => handleViewDetails(transaction)}
-                      className="text-center font-sans text-[15px] font-normal leading-normal text-[#06888C] hover:underline"
-                    >
-                      View Details
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+              View All
+              <svg
+                width="12"
+                height="11"
+                viewBox="0 0 12 11"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M6.58333 9.5L10.75 5.125M10.75 5.125L6.58333 0.75M10.75 5.125H0.75"
+                  stroke="#06888C"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+        }
+        getRowId={(row: RowTx) => row.id}
+      />
 
       <TransactionDetailsModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
-        transaction={selectedTransaction || undefined}
+        transaction={
+          selected
+            ? {
+                id: selected.id,
+                date: selected.dateTime.split(" • ")[0] || "",
+                time: selected.dateTime.split(" • ")[1] || "",
+                amount: selected.amount,
+                method: selected.method,
+                status: selected.status,
+              }
+            : undefined
+        }
       />
-    </>
+    </div>
   );
 }
+
+export default TransactionHistory;

@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown } from "lucide-react";
+import type { ColumnDef, Row } from "@tanstack/react-table";
 import { InvoiceStatCard } from "@/components/invoices/InvoiceStatCard";
-import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { DataTable } from "@/components/ui/data-table";
+import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
 
 const TotalInvoicesIcon = () => (
   <svg
@@ -206,7 +207,7 @@ const mockInvoices: Invoice[] = [
     status: "complete",
   },
   {
-    id: "#543214BB",
+    id: "#543215BC",
     billingName: "Damilola Kingsley",
     orderDate: "22nd Aug, 2025",
     method: "EBT",
@@ -214,7 +215,7 @@ const mockInvoices: Invoice[] = [
     status: "complete",
   },
   {
-    id: "#543214BB",
+    id: "#543216BD",
     billingName: "Damilola Kingsley",
     orderDate: "22nd Aug, 2025",
     method: "EBT",
@@ -222,7 +223,7 @@ const mockInvoices: Invoice[] = [
     status: "complete",
   },
   {
-    id: "#543214BB",
+    id: "#543217BE",
     billingName: "Damilola Kingsley",
     orderDate: "22nd Aug, 2025",
     method: "EBT",
@@ -230,7 +231,7 @@ const mockInvoices: Invoice[] = [
     status: "complete",
   },
   {
-    id: "#543214BB",
+    id: "#543218BF",
     billingName: "Damilola Kingsley",
     orderDate: "22nd Aug, 2025",
     method: "EBT",
@@ -238,7 +239,7 @@ const mockInvoices: Invoice[] = [
     status: "complete",
   },
   {
-    id: "#543214BB",
+    id: "#543219BG",
     billingName: "Damilola Kingsley",
     orderDate: "22nd Aug, 2025",
     method: "EBT",
@@ -246,7 +247,7 @@ const mockInvoices: Invoice[] = [
     status: "complete",
   },
   {
-    id: "#543214BB",
+    id: "#543220BH",
     billingName: "Damilola Kingsley",
     orderDate: "22nd Aug, 2025",
     method: "EBT",
@@ -254,7 +255,7 @@ const mockInvoices: Invoice[] = [
     status: "complete",
   },
   {
-    id: "#543214BB",
+    id: "#543221BI",
     billingName: "Damilola Kingsley",
     orderDate: "22nd Aug, 2025",
     method: "EBT",
@@ -262,7 +263,7 @@ const mockInvoices: Invoice[] = [
     status: "complete",
   },
   {
-    id: "#543214BB",
+    id: "#543222BJ",
     billingName: "Damilola Kingsley",
     orderDate: "22nd Aug, 2025",
     method: "EBT",
@@ -273,45 +274,71 @@ const mockInvoices: Invoice[] = [
 
 export default function Invoices() {
   const navigate = useNavigate();
-  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [searchColumn, setSearchColumn] = useState("id");
+  const [searchValue, setSearchValue] = useState("");
 
-  const getStatusColor = (status: InvoiceStatus) => {
-    switch (status) {
-      case "complete":
-        return "text-[#21C45D]";
-      case "pending":
-        return "text-[#EE9C03]";
-      case "cancelled":
-        return "text-[#FF0000]";
-    }
-  };
-
-  const getStatusText = (status: InvoiceStatus) => {
-    switch (status) {
-      case "complete":
-        return "Complete";
-      case "pending":
-        return "Pending";
-      case "cancelled":
-        return "Cancelled";
-    }
-  };
-
-  const toggleInvoiceSelection = (invoiceId: string) => {
-    setSelectedInvoices((prev) =>
-      prev.includes(invoiceId)
-        ? prev.filter((id) => id !== invoiceId)
-        : [...prev, invoiceId],
-    );
-  };
-
-  const toggleAllInvoices = () => {
-    if (selectedInvoices.length === mockInvoices.length) {
-      setSelectedInvoices([]);
-    } else {
-      setSelectedInvoices(mockInvoices.map((invoice) => invoice.id));
-    }
-  };
+  const columns = useMemo<ColumnDef<Invoice, unknown>[]>(
+    () => [
+      {
+        accessorKey: "id",
+        header: "Invoice ID",
+      },
+      {
+        accessorKey: "billingName",
+        header: "Billing Name",
+      },
+      {
+        accessorKey: "orderDate",
+        header: "Order Date",
+      },
+      {
+        accessorKey: "method",
+        header: "Method",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2.5">
+            <CreditCardIcon />
+            <span className="font-sans text-[15px] font-normal leading-normal text-black">
+              {row.original.method}
+            </span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "total",
+        header: "Total",
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => {
+          const status = row.original.status;
+          const color =
+            status === "complete"
+              ? "text-[#21C45D]"
+              : status === "pending"
+                ? "text-[#EE9C03]"
+                : "text-[#FF0000]";
+          return <span className={cn(color)}>{status}</span>;
+        },
+      },
+      {
+        id: "actions",
+        header: "Action",
+        cell: ({ row }) => (
+          <button
+            onClick={() =>
+              navigate(`/invoices/${row.original.id.replace("#", "")}`)
+            }
+            className="text-center font-sans text-[15px] font-normal leading-normal text-[#06888C] hover:underline"
+          >
+            View Details
+          </button>
+        ),
+      },
+    ],
+    [navigate],
+  );
 
   return (
     <div className="space-y-8">
@@ -340,197 +367,41 @@ export default function Invoices() {
       </div>
 
       {/* Invoices Table Section */}
-      <div className="rounded-2xl bg-white p-7 sm:p-11">
-        <div className="space-y-7">
-          {/* Filters and Actions */}
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            {/* All Invoices Tab */}
-            <div className="inline-flex items-center gap-1 rounded-md bg-[#D2EAE3] px-3.5 py-2.5">
-              <span className="font-lato text-[15px] font-medium leading-5 text-black">
-                All Invoices
-              </span>
-              <span className="font-lato text-sm font-bold leading-normal text-[#4EA674]">
-                (71)
-              </span>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center gap-2.5">
-              <button className="flex items-center gap-2.5 rounded-lg border border-[#D1D5DB] px-[17px] py-2.5 font-sans text-sm font-normal leading-normal text-[#06888C]">
-                <ExportIcon />
-                Export
-              </button>
-              <div className="flex items-center">
-                <button className="flex items-center gap-2.5 rounded-l-[10px] border border-[#DBDBDB] border-r-0 px-2.5 py-2.5 font-sans text-sm font-normal leading-normal text-[#656565]">
-                  Search by
-                  <ChevronDown className="h-5 w-5 text-[#010101]" />
-                </button>
-                <input
-                  type="text"
-                  placeholder="Search anything"
-                  className="h-10 w-[200px] rounded-r-[10px] border border-[#DBDBDB] px-2.5 py-2.5 font-sans text-sm font-normal leading-normal text-[#656565] placeholder:text-[#656565] focus:border-[#06888C] focus:outline-none"
-                />
-              </div>
-              <button className="flex items-center gap-2.5 rounded-lg border border-[#D1D5DB] px-3.5 py-2.5 font-sans text-sm font-normal leading-normal text-[#06888C]">
-                <FilterIcon />
-                Filter by
-              </button>
-            </div>
-          </div>
-
-          {/* Table Wrapper with horizontal scroll */}
-          <div className="w-full overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="rounded-md bg-[#D2EAE3]">
-                  <th className="px-7 py-[13px] text-left">
-                    <div className="flex items-center gap-2.5">
-                      <Checkbox
-                        checked={
-                          selectedInvoices.length === mockInvoices.length
-                        }
-                        onCheckedChange={toggleAllInvoices}
-                        className="h-4 w-4 rounded border-[#707070]"
-                      />
-                      <span className="font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                        Invoice ID
-                      </span>
-                    </div>
-                  </th>
-                  <th className="px-4 py-[13px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                    Billing Name
-                  </th>
-                  <th className="px-4 py-[13px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                    Order Date
-                  </th>
-                  <th className="px-4 py-[13px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                    Method
-                  </th>
-                  <th className="px-4 py-[13px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                    Total
-                  </th>
-                  <th className="px-4 py-[13px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                    Status
-                  </th>
-                  <th className="px-4 py-[13px] text-left font-sans text-[15px] font-semibold leading-normal text-[#023337]">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {mockInvoices.map((invoice, index) => (
-                  <tr
-                    key={`${invoice.id}-${index}`}
-                    className="border-b border-[#D1D5DB]"
-                  >
-                    <td className="px-7 py-[19px]">
-                      <div className="flex items-center gap-2.5">
-                        <Checkbox
-                          checked={selectedInvoices.includes(invoice.id)}
-                          onCheckedChange={() =>
-                            toggleInvoiceSelection(invoice.id)
-                          }
-                          className="h-4 w-4 rounded border-[#707070]"
-                        />
-                        <span className="font-sans text-[15px] font-normal leading-normal text-black">
-                          {invoice.id}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-[19px] font-sans text-[15px] font-normal leading-normal text-black">
-                      {invoice.billingName}
-                    </td>
-                    <td className="px-4 py-[19px] font-sans text-[15px] font-normal leading-normal text-black">
-                      {invoice.orderDate}
-                    </td>
-                    <td className="px-4 py-[19px]">
-                      <div className="flex items-center gap-2.5">
-                        <CreditCardIcon />
-                        <span className="font-sans text-[15px] font-normal leading-normal text-black">
-                          {invoice.method}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-[19px] font-sans text-[15px] font-normal leading-normal text-black">
-                      {invoice.total}
-                    </td>
-                    <td className="px-4 py-[19px]">
-                      <div className="flex items-center justify-center gap-2.5">
-                        <svg
-                          width="8"
-                          height="8"
-                          viewBox="0 0 8 8"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <circle cx="4" cy="4" r="4" fill="#21C45D" />
-                        </svg>
-                        <span
-                          className={cn(
-                            "font-sans text-[15px] font-normal leading-normal",
-                            getStatusColor(invoice.status),
-                          )}
-                        >
-                          {getStatusText(invoice.status)}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-[19px]">
-                      <button
-                        onClick={() =>
-                          navigate(`/invoices/${invoice.id.replace("#", "")}`)
-                        }
-                        className="text-center font-sans text-[15px] font-normal leading-normal text-[#06888C] hover:underline"
-                      >
-                        View Details
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:justify-between">
-            <button className="flex h-[42px] items-center justify-center gap-1 rounded-lg bg-white px-3 py-2.5 shadow-[0_1px_3px_0_rgba(0,0,0,0.20)]">
-              <ArrowLeftIcon />
-              <span className="font-sans text-[15px] font-normal leading-normal text-black">
-                Previous
-              </span>
-            </button>
-
-            <div className="flex items-center gap-3">
-              <button className="flex h-9 w-9 items-center justify-center rounded bg-[#D2EAE3] font-sans text-[15px] font-bold leading-normal text-[#023337]">
-                1
-              </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded border border-[#D1D5DB] font-sans text-[15px] font-normal leading-normal text-[#023337]">
-                2
-              </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded border border-[#D1D5DB] font-sans text-[15px] font-normal leading-normal text-[#023337]">
-                3
-              </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded border border-[#D1D5DB] font-sans text-[15px] font-normal leading-normal text-[#023337]">
-                4
-              </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded border border-[#D1D5DB] font-sans text-[15px] font-normal leading-normal text-[#023337]">
-                5
-              </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded border border-[#D1D5DB] font-sans text-[15px] font-bold leading-normal text-[#023337]">
-                .....
-              </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded border border-[#D1D5DB] font-sans text-[15px] font-normal leading-normal text-[#023337]">
-                24
-              </button>
-            </div>
-
-            <button className="flex h-[42px] items-center justify-center gap-1 rounded-lg bg-white px-3 py-2.5 shadow-[0_1px_3px_0_rgba(0,0,0,0.20)]">
-              <span className="font-sans text-[15px] font-normal leading-normal text-black">
-                Next
-              </span>
-              <ArrowRightIcon />
-            </button>
-          </div>
+      <div className="p-0">
+        <div className="space-y-4">
+          <DataTable
+            columns={columns}
+            data={mockInvoices}
+            toolbar={
+              <DataTableToolbar
+                tabs={[
+                  { id: "all", label: "All Invoices", count: 71 },
+                  { id: "pending", label: "Pending" },
+                  { id: "paid", label: "Paid" },
+                  { id: "inactive", label: "Inactive" },
+                ]}
+                activeTab={"all"}
+                searchOptions={[
+                  { value: "id", label: "Search by Invoice ID" },
+                  { value: "billingName", label: "Search by Billing Name" },
+                  { value: "orderDate", label: "Search by Order Date" },
+                ]}
+                searchColumn={searchColumn}
+                onSearchColumnChange={setSearchColumn}
+                searchValue={searchValue}
+                onSearchValueChange={setSearchValue}
+                onExport={() => console.log("Exporting invoices...")}
+                onFilter={() => console.log("Filtering invoices...")}
+              />
+            }
+            enableRowSelection
+            pageIndex={pagination.pageIndex}
+            pageSize={pagination.pageSize}
+            onPaginationChange={setPagination}
+            pageCount={Math.ceil(mockInvoices.length / pagination.pageSize)}
+            getRowId={(row) => row.id}
+            wrapperClassName="bg-white"
+          />
         </div>
       </div>
     </div>

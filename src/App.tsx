@@ -16,6 +16,7 @@ import InvoiceDetails from "./pages/InvoiceDetails";
 import OrderDetails from "./pages/OrderDetails";
 import Customers from "./pages/Customers";
 import CustomerInformation from "./pages/CustomerInformation";
+import Admins from "./pages/Admins";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import EmailMarketing from "./pages/EmailMarketing";
@@ -51,6 +52,14 @@ function App() {
               element={
                 <Layout>
                   <StoreManagement />
+                </Layout>
+              }
+            />
+            <Route
+              path="/store-management/substore/:userId"
+              element={
+                <Layout>
+                  <SubStoreManagement />
                 </Layout>
               }
             />
@@ -123,6 +132,14 @@ function App() {
               element={
                 <Layout>
                   <CustomerInformation />
+                </Layout>
+              }
+            />
+            <Route
+              path="/admins"
+              element={
+                <Layout>
+                  <Admins />
                 </Layout>
               }
             />

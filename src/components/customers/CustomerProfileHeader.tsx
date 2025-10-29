@@ -1,20 +1,26 @@
 import { MessageSquare, Phone } from "lucide-react";
 import { CheckCircle } from "lucide-react";
 
-export function CustomerProfileHeader() {
+type CustomerProfileHeaderProps = {
+  name?: string;
+  email?: string;
+  avatarUrl?: string;
+};
+
+export function CustomerProfileHeader({ name, email, avatarUrl }: CustomerProfileHeaderProps) {
   return (
     <div className="bg-white rounded-2xl p-6 md:p-10 flex flex-col gap-9">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-0">
         <div className="flex items-center gap-7">
           <img
-            src="https://api.builder.io/api/v1/image/assets/TEMP/a9e103d8b6d8d3b7227ec3db30eb8b13847c23dd?width=192"
+            src={avatarUrl || "https://api.builder.io/api/v1/image/assets/TEMP/a9e103d8b6d8d3b7227ec3db30eb8b13847c23dd?width=192"}
             alt="Customer"
             className="w-24 h-24 rounded-full object-cover flex-shrink-0"
           />
           <div className="flex flex-col gap-2.5">
             <div className="flex items-center gap-1.5">
               <h2 className="text-xl font-sans font-bold text-[#131523] leading-6">
-                Sandra Elizabeth
+                {name || "N/A"}
               </h2>
               <svg
                 width="24"
@@ -30,7 +36,7 @@ export function CustomerProfileHeader() {
               </svg>
             </div>
             <p className="text-base font-sans font-normal text-[#131523] leading-6">
-              Sandraelizabeth@gmail.com
+              {email || "N/A"}
             </p>
           </div>
         </div>

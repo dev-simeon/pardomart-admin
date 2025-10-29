@@ -1,4 +1,12 @@
-export function CustomerInfoSidebar() {
+type CustomerInfoSidebarProps = {
+  address?: string;
+  email?: string;
+  phone?: string;
+  paymentMethodLabel?: string;
+  paymentMasked?: string;
+};
+
+export function CustomerInfoSidebar({ address, email, phone, paymentMethodLabel, paymentMasked }: CustomerInfoSidebarProps) {
   return (
     <div className="bg-white rounded-2xl overflow-hidden h-fit">
       <div className="bg-[#D2EAE3] px-5 py-8 flex items-center gap-2">
@@ -39,7 +47,7 @@ export function CustomerInfoSidebar() {
               />
             </svg>
             <p className="text-xs font-sans font-normal text-[#5A607F] leading-5 flex-1">
-              Alabama Street Rus des nation 220889 NY
+              {address || "N/A"}
             </p>
           </div>
 
@@ -57,7 +65,7 @@ export function CustomerInfoSidebar() {
               />
             </svg>
             <p className="text-sm font-sans font-normal text-[#5A607F] leading-5 flex-1">
-              Wadewarren@gmail.com
+              {email || "N/A"}
             </p>
           </div>
 
@@ -75,7 +83,7 @@ export function CustomerInfoSidebar() {
               />
             </svg>
             <p className="text-sm font-sans font-normal text-[#5A607F] leading-5 flex-1">
-              +1 56554441
+              {phone || "N/A"}
             </p>
           </div>
 
@@ -87,10 +95,10 @@ export function CustomerInfoSidebar() {
             />
             <div className="flex-1">
               <p className="text-base font-nunito font-semibold text-black leading-4 mb-1">
-                EBT
+                {paymentMethodLabel || "Payment"}
               </p>
               <p className="text-xs font-sans font-normal text-[#898A8D] leading-[10px]">
-                **** **** 2345
+                {paymentMasked || ""}
               </p>
             </div>
           </div>
