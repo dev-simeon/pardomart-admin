@@ -1,232 +1,43 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as SonnerToaster } from "sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Layout } from "./components/Layout";
-import CreateAccount from "./pages/CreateAccount";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ProtectedRoute } from "./ProtectedRoute";
+import Login from "./pages/Login";
+import VerifyOTP from "./pages/VerifyOTP";
 import Dashboard from "./pages/Dashboard";
-import StoreManagement from "./pages/StoreManagement";
-import SubStoreManagement from "./pages/SubStoreManagement";
-import Products from "./pages/Products";
-import Orders from "./pages/Orders";
-import Transactions from "./pages/Transactions";
-import Invoices from "./pages/Invoices";
-import InvoiceDetails from "./pages/InvoiceDetails";
-import OrderDetails from "./pages/OrderDetails";
 import Customers from "./pages/Customers";
-import CustomerInformation from "./pages/CustomerInformation";
+import Orders from "./pages/Orders";
 import Admins from "./pages/Admins";
-import Analytics from "./pages/Analytics";
-import Settings from "./pages/Settings";
-import EmailMarketing from "./pages/EmailMarketing";
-import Profile from "./pages/Profile";
-import DeliveryGuys from "./pages/DeliveryGuys";
-import Support from "./pages/Support";
-import Messages from "./pages/Messages";
-import HelpCenter from "./pages/HelpCenter";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import NotFound from "./pages/NotFound";
-
-const queryClient = new QueryClient();
+import { Toaster } from "@/components/ui/toaster";
+import TokenExpirationManager from "@/components/auth/TokenExpirationManager";
+// ... import other pages
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
+    <AuthProvider>
+      <Router>
+        <TokenExpirationManager />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/verify-otp" element={<VerifyOTP />} />
+          <Route element={<ProtectedRoute />}>
+            {/* All protected routes go here */}
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/customers" element={<Customers />} />
+            <Route path="/orders" element={<Orders />} />
+            <Route path="/admins" element={<Admins />} />
+            {/* ... other protected routes */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Route>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
         <Toaster />
-        <SonnerToaster />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<CreateAccount />} />
-            <Route
-              path="/dashboard"
-              element={
-                <Layout>
-                  <Dashboard />
-                </Layout>
-              }
-            />
-            <Route
-              path="/store-management"
-              element={
-                <Layout>
-                  <StoreManagement />
-                </Layout>
-              }
-            />
-            <Route
-              path="/store-management/substore/:userId"
-              element={
-                <Layout>
-                  <SubStoreManagement />
-                </Layout>
-              }
-            />
-            <Route
-              path="/store-management/substore"
-              element={
-                <Layout>
-                  <SubStoreManagement />
-                </Layout>
-              }
-            />
-            <Route
-              path="/transactions"
-              element={
-                <Layout>
-                  <Transactions />
-                </Layout>
-              }
-            />
-            <Route
-              path="/invoices"
-              element={
-                <Layout>
-                  <Invoices />
-                </Layout>
-              }
-            />
-            <Route
-              path="/invoices/:id"
-              element={
-                <Layout>
-                  <InvoiceDetails />
-                </Layout>
-              }
-            />
-            <Route
-              path="/products"
-              element={
-                <Layout>
-                  <Products />
-                </Layout>
-              }
-            />
-            <Route
-              path="/orders"
-              element={
-                <Layout>
-                  <Orders />
-                </Layout>
-              }
-            />
-            <Route
-              path="/orders/:id"
-              element={
-                <Layout>
-                  <OrderDetails />
-                </Layout>
-              }
-            />
-            <Route
-              path="/customers"
-              element={
-                <Layout>
-                  <Customers />
-                </Layout>
-              }
-            />
-            <Route
-              path="/customers/:id"
-              element={
-                <Layout>
-                  <CustomerInformation />
-                </Layout>
-              }
-            />
-            <Route
-              path="/admins"
-              element={
-                <Layout>
-                  <Admins />
-                </Layout>
-              }
-            />
-            <Route
-              path="/analytics"
-              element={
-                <Layout>
-                  <Analytics />
-                </Layout>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <Layout>
-                  <Settings />
-                </Layout>
-              }
-            />
-            <Route
-              path="/marketing"
-              element={
-                <Layout>
-                  <EmailMarketing />
-                </Layout>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <Layout>
-                  <Profile />
-                </Layout>
-              }
-            />
-            <Route
-              path="/delivery"
-              element={
-                <Layout>
-                  <DeliveryGuys />
-                </Layout>
-              }
-            />
-            <Route
-              path="/support"
-              element={
-                <Layout>
-                  <Support />
-                </Layout>
-              }
-            />
-            <Route
-              path="/messages"
-              element={
-                <Layout>
-                  <Messages />
-                </Layout>
-              }
-            />
-            <Route
-              path="/help"
-              element={
-                <Layout>
-                  <HelpCenter />
-                </Layout>
-              }
-            />
-            <Route
-              path="/privacy"
-              element={
-                <Layout>
-                  <PrivacyPolicy />
-                </Layout>
-              }
-            />
-            <Route
-              path="*"
-              element={
-                <Layout>
-                  <NotFound />
-                </Layout>
-              }
-            />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+      </Router>
+    </AuthProvider>
   );
 }
 
