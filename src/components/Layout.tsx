@@ -32,19 +32,8 @@ const getPageTitle = (pathname: string): string => {
     "/privacy": "Privacy Policy",
   };
 
-  if (pathname.startsWith("/orders/")) {
-    return "Order Details";
-  }
-
-  if (pathname.startsWith("/invoices/")) {
-    return "Invoice Details";
-  }
-
-  if (pathname.startsWith("/customers/")) {
-    return "Customer Information";
-  }
-
-  return titles[pathname] || "Dashboard";
+  const mainPath = "/" + pathname.split("/")[1];
+  return titles[pathname] || titles[mainPath] || "Dashboard";
 };
 
 const HomeIcon = ({ className }: { className?: string }) => (
@@ -415,29 +404,9 @@ export function Layout({ children }: LayoutProps) {
   ];
 
   const isActive = (path: string) => {
-    if (path === "/store-management") {
-      return (
-        location.pathname === path ||
-        location.pathname.startsWith("/store-management/")
-      );
-    }
-    if (path === "/orders") {
-      return (
-        location.pathname === path || location.pathname.startsWith("/orders/")
-      );
-    }
-    if (path === "/invoices") {
-      return (
-        location.pathname === path || location.pathname.startsWith("/invoices/")
-      );
-    }
-    if (path === "/customers") {
-      return (
-        location.pathname === path ||
-        location.pathname.startsWith("/customers/")
-      );
-    }
-    return location.pathname === path;
+    return (
+      location.pathname === path || location.pathname.startsWith(path + "/")
+    );
   };
 
   const NavSection = ({
