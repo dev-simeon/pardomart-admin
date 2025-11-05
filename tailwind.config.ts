@@ -21,7 +21,10 @@ export default {
         raleway: ['Raleway', '-apple-system', 'Roboto', 'Helvetica', 'sans-serif'],
       },
       colors: {
-        border: "hsl(var(--border))",
+        border: {
+          DEFAULT: "hsl(var(--border))",
+          foreground: "hsl(var(--border-foreground))",
+        },
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
