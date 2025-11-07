@@ -13,6 +13,7 @@ import {
 } from "@tanstack/react-table";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -259,7 +260,10 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
                     colSpan={table.getAllColumns().length}
                     className="h-24 text-center text-[#656565]"
                   >
-                    Loading...
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-5 w-5 animate-spin text-[#06888C]" />
+                      <span>Loading...</span>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : table.getRowModel().rows?.length ? (

@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
-import type { ColumnDef, Row } from "@tanstack/react-table";
+import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/ui/data-table";
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
 import { cn } from "@/lib/utils";
 import { TransactionDetailsModal } from "@/components/transactions";
+import { useAdminTransactions } from "@/hooks/useAdminTransactions";
 
 const TotalTransactionIcon = () => (
   <svg
@@ -217,7 +218,7 @@ const StatCard = ({
 
 type TransactionStatus = "complete" | "cancelled" | "pending";
 
-interface Transaction {
+interface TransactionDisplay {
   id: string;
   dateTime: string;
   amount: string;
@@ -225,69 +226,50 @@ interface Transaction {
   status: TransactionStatus;
 }
 
-const mockTransactions: Transaction[] = [
-  {
-    id: "#543214BB",
-    dateTime: "22nd Aug, 2025 & 9:00 PM",
-    amount: "$154.33",
-    method: "EBT",
-    status: "complete",
-  },
-  {
-    id: "#543215BC",
-    dateTime: "22nd Aug, 2025 & 9:00 PM",
-    amount: "$154.33",
-    method: "EBT",
-    status: "cancelled",
-  },
-  {
-    id: "#543216BD",
-    dateTime: "22nd Aug, 2025 & 9:00 PM",
-    amount: "$154.33",
-    method: "EBT",
-    status: "complete",
-  },
-  {
-    id: "#543217BE",
-    dateTime: "22nd Aug, 2025 & 9:00 PM",
-    amount: "$154.33",
-    method: "EBT",
-    status: "pending",
-  },
-  {
-    id: "#543218BF",
-    dateTime: "22nd Aug, 2025 & 9:00 PM",
-    amount: "$154.33",
-    method: "EBT",
-    status: "cancelled",
-  },
-  {
-    id: "#543219BG",
-    dateTime: "22nd Aug, 2025 & 9:00 PM",
-    amount: "$154.33",
-    method: "EBT",
-    status: "complete",
-  },
-  {
-    id: "#543220BH",
-    dateTime: "22nd Aug, 2025 & 9:00 PM",
-    amount: "$154.33",
-    method: "EBT",
-    status: "complete",
-  },
-  {
-    id: "#543221BI",
-    dateTime: "22nd Aug, 2025 & 9:00 PM",
-    amount: "$154.33",
-    method: "EBT",
-    status: "cancelled",
-  },
-];
+const formatTransactionStatus = (
+  status?: string
+): TransactionStatus => {
+  if (!status) return "pending";
+  const statusLower = status.toLowerCase();
+  if (statusLower.includes("complete") || statusLower.includes("success"))
+    return "complete";
+  if (statusLower.includes("cancel") || statusLower.includes("failed"))
+    return "cancelled";
+  return "pending";
+};
+
+const formatAmount = (amount?: number): string => {
+  if (!amount) return "$0.00";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(amount);
+};
+
+const formatDateTime = (dateTime?: string): string => {
+  if (!dateTime) return "N/A";
+  try {
+    const date = new Date(dateTime);
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    });
+    return formatter.format(date);
+  } catch {
+    return dateTime;
+  }
+};
 
 export default function Transactions() {
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [searchColumn, setSearchColumn] = useState("id");
   const [searchValue, setSearchValue] = useState("");
+  const [activeTab, setActiveTab] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<{
     id: string;
@@ -297,6 +279,19 @@ export default function Transactions() {
     method: string;
     status: TransactionStatus;
   } | null>(null);
+
+  const statusMap: { [key: string]: string | undefined } = {
+    completed: "complete",
+    pending: "pending",
+    canceled: "cancelled",
+  };
+
+  const { transactions, overview, loading, error, total, totalPages } =
+    useAdminTransactions({
+      page: pagination.pageIndex + 1,
+      pageSize: pagination.pageSize,
+      status: activeTab !== "all" ? statusMap[activeTab] : undefined,
+    });
 
   const getStatusDisplay = (status: TransactionStatus) => {
     const statusConfig = {
@@ -327,22 +322,46 @@ export default function Transactions() {
     );
   };
 
+  const transactionDisplays = useMemo((): TransactionDisplay[] => {
+    return transactions.map((tx) => ({
+      id: tx.id || "N/A",
+      dateTime: formatDateTime(tx.createdAt),
+      amount: formatAmount(tx.amount),
+      method: tx.source || "Unknown",
+      status: formatTransactionStatus(tx.status),
+    }));
+  }, [transactions]);
+
   const filteredTransactions = useMemo(() => {
-    if (!searchValue) return mockTransactions;
+    let result = transactionDisplays;
 
-    const searchLower = searchValue.toLowerCase();
-    return mockTransactions.filter((transaction) => {
-      if (searchColumn === "id") {
-        return transaction.id.toLowerCase().includes(searchLower);
-      }
-      if (searchColumn === "amount") {
-        return transaction.amount.toLowerCase().includes(searchLower);
-      }
-      return true;
-    });
-  }, [mockTransactions, searchColumn, searchValue]);
+    // Filter by search (API already handles status filtering)
+    if (searchValue) {
+      const searchLower = searchValue.toLowerCase();
+      result = result.filter((transaction) => {
+        if (searchColumn === "id") {
+          return transaction.id.toLowerCase().includes(searchLower);
+        }
+        if (searchColumn === "amount") {
+          return transaction.amount.toLowerCase().includes(searchLower);
+        }
+        return true;
+      });
+    }
 
-  const columns = useMemo<ColumnDef<Transaction, unknown>[]>(
+    return result;
+  }, [transactionDisplays, searchColumn, searchValue]);
+
+  const statusCounts = useMemo(() => {
+    return {
+      all: transactionDisplays.length,
+      complete: transactionDisplays.filter((tx) => tx.status === "complete").length,
+      pending: transactionDisplays.filter((tx) => tx.status === "pending").length,
+      cancelled: transactionDisplays.filter((tx) => tx.status === "cancelled").length,
+    };
+  }, [transactionDisplays]);
+
+  const columns = useMemo<ColumnDef<TransactionDisplay, unknown>[]>(
     () => [
       {
         accessorKey: "id",
@@ -396,16 +415,18 @@ export default function Transactions() {
         ),
       },
     ],
-    [],
+    [getStatusDisplay],
   );
 
-  const handleViewDetails = (transaction: Transaction) => {
-    const [date, time] = transaction.dateTime.split(" & ");
+  const handleViewDetails = (transaction: TransactionDisplay) => {
+    const dateParts = transaction.dateTime.split(" ");
+    const date = dateParts.slice(0, 3).join(" ");
+    const time = dateParts.slice(3).join(" ");
     setSelectedTransaction({
-      id: "#654321DB",
-      date: "23rd Aug, 2025",
-      time: "09:00 PM",
-      amount: "$564.66",
+      id: transaction.id,
+      date: date || "N/A",
+      time: time || "N/A",
+      amount: transaction.amount,
       method: transaction.method,
       status: transaction.status,
     });
@@ -417,38 +438,70 @@ export default function Transactions() {
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   };
 
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  };
+
+  if (error) {
+    return (
+      <div className="space-y-8">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-6">
+          <h2 className="font-sans text-lg font-semibold text-red-800">
+            Error Loading Transactions
+          </h2>
+          <p className="mt-2 font-sans text-sm text-red-700">
+            {error.message}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={<TotalTransactionIcon />}
           title="Total Transaction"
-          value="6,876"
-          change="+ 0.03%"
+          value={overview?.totalTransactions.toLocaleString() || "0"}
+          change={loading ? "Loading..." : "+ 0.03%"}
           isPositive={true}
           period="Last 30 days"
         />
         <StatCard
           icon={<TotalIncomeIcon />}
           title="Total Income"
-          value="61,876"
-          change="+ 0.03%"
+          value={
+            overview
+              ? formatAmount(overview.totalIncome).replace("$", "")
+              : "0"
+          }
+          change={loading ? "Loading..." : "+ 0.03%"}
           isPositive={true}
           period="Last 30 days"
         />
         <StatCard
           icon={<TotalExpensesIcon />}
           title="Total Expenses"
-          value="42,876"
-          change="+ 0.03%"
+          value={
+            overview
+              ? formatAmount(overview.totalExpenses).replace("$", "")
+              : "0"
+          }
+          change={loading ? "Loading..." : "+ 0.03%"}
           isPositive={true}
           period="Last 30 days"
         />
         <StatCard
           icon={<TotalRevenueIcon />}
           title="Total Revenue"
-          value="1,876"
-          change="- 0.03%"
+          value={
+            overview
+              ? formatAmount(overview.totalRevenue).replace("$", "")
+              : "0"
+          }
+          change={loading ? "Loading..." : "- 0.03%"}
           isPositive={false}
           period="Last 30 days"
         />
@@ -459,15 +512,22 @@ export default function Transactions() {
           <DataTable
             columns={columns}
             data={filteredTransactions}
+            loading={loading}
+            emptyMessage={
+              searchValue
+                ? "No transactions found. Try adjusting your search filters."
+                : "No transactions to display yet."
+            }
             toolbar={
               <DataTableToolbar
                 tabs={[
-                  { id: "all", label: "All order", count: 240 },
-                  { id: "completed", label: "Completed" },
-                  { id: "pending", label: "Pending" },
-                  { id: "canceled", label: "Canceled" },
+                  { id: "all", label: "All transaction", count: total },
+                  { id: "completed", label: "Completed", count: statusCounts.complete },
+                  { id: "pending", label: "Pending", count: statusCounts.pending },
+                  { id: "canceled", label: "Canceled", count: statusCounts.cancelled },
                 ]}
-                activeTab="all"
+                activeTab={activeTab}
+                onTabChange={handleTabChange}
                 searchOptions={[
                   { value: "id", label: "Search by Transaction ID" },
                   { value: "amount", label: "Search by Amount" },
@@ -482,11 +542,11 @@ export default function Transactions() {
             }
             enableRowSelection
             manualPagination
-            pageCount={3}
+            pageCount={totalPages}
             pageIndex={pagination.pageIndex}
             pageSize={pagination.pageSize}
             onPaginationChange={setPagination}
-            getRowId={(row: Transaction) => row.id}
+            getRowId={(row: TransactionDisplay) => row.id}
           />
         </div>
       </div>

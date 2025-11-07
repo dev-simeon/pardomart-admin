@@ -1,8 +1,8 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef, Row } from "@tanstack/react-table";
 import { OrderStatCard } from "@/components/orders/OrderStatCard";
-import { useOrders } from "@/hooks/useOrders";
+import { useAdminOrders } from "@/hooks/useAdminOrders";
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
 import { cn } from "@/lib/utils";
 import { DataTable } from "@/components/ui/data-table";
@@ -256,28 +256,42 @@ export default function Orders() {
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [searchColumn, setSearchColumn] = useState<SearchableColumn>("id");
   const [searchValue, setSearchValue] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
 
-  const { orders, loading, error, total, totalPages } = useOrders({
-    page: pagination.pageIndex + 1,
-    size: pagination.pageSize,
-  });
+  const statusMap: { [key: string]: string | undefined } = {
+    completed: "delivered",
+    pending: "ready,shipped",
+    canceled: "cancelled",
+  };
+
+  const { orders, overview, loading, error, total, totalPages } =
+    useAdminOrders({
+      page: pagination.pageIndex + 1,
+      pageSize: pagination.pageSize,
+      status: activeTab !== "all" ? statusMap[activeTab] : undefined,
+    });
 
   const filteredOrders = useMemo(() => {
-    if (!searchValue) return orders;
+    let result = orders;
 
-    const searchLower = searchValue.toLowerCase();
-    return orders.filter((order) => {
-      if (searchColumn === "id" && order.id) {
-        return order.id.toLowerCase().includes(searchLower);
-      }
-      if (searchColumn === "customer" && order.customerId) {
-        return order.customerId.toLowerCase().includes(searchLower);
-      }
-      if (searchColumn === "date" && order.createdAt) {
-        return order.createdAt.toString().includes(searchLower);
-      }
-      return true;
-    });
+    // Filter by search (API already handles status filtering)
+    if (searchValue) {
+      const searchLower = searchValue.toLowerCase();
+      result = result.filter((order) => {
+        if (searchColumn === "id" && order.id) {
+          return order.id.toLowerCase().includes(searchLower);
+        }
+        if (searchColumn === "customer" && order.customerId) {
+          return order.customerId.toLowerCase().includes(searchLower);
+        }
+        if (searchColumn === "date" && order.createdAt) {
+          return order.createdAt.toString().includes(searchLower);
+        }
+        return true;
+      });
+    }
+
+    return result;
   }, [orders, searchColumn, searchValue]);
 
   const columns = useMemo<ColumnDef<any, unknown>[]>(
@@ -374,6 +388,18 @@ export default function Orders() {
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   };
 
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  };
+
+  const getTabCount = (tabId: string): number | undefined => {
+    if (tabId === "all") {
+      return total;
+    }
+    return undefined;
+  };
+
   if (error) {
     return (
       <div className="space-y-8">
@@ -393,32 +419,32 @@ export default function Orders() {
         <OrderStatCard
           icon={<OrdersIcon />}
           title="Total Orders"
-          value={total.toLocaleString()}
-          change="+ 0.03%"
+          value={overview?.totalOrders?.toLocaleString() || "0"}
+          change={loading ? "Loading..." : "+ 0.03%"}
           isPositive={true}
           period="Last 7 days"
         />
         <OrderStatCard
           icon={<ProductsIcon />}
           title="Total Products"
-          value="61,876"
-          change="+ 0.03%"
+          value={overview?.totalProducts?.toLocaleString() || "0"}
+          change={loading ? "Loading..." : "+ 0.03%"}
           isPositive={true}
           period="Last 7 days"
         />
         <OrderStatCard
           icon={<InStockIcon />}
           title="In-Stock Products"
-          value="42,876"
-          change="+ 0.03%"
+          value={overview?.inStockProducts?.toLocaleString() || "0"}
+          change={loading ? "Loading..." : "+ 0.03%"}
           isPositive={true}
           period="Last 7 days"
         />
         <OrderStatCard
           icon={<CancelledIcon />}
           title="Cancelled Orders"
-          value="1,876"
-          change="- 0.03%"
+          value={overview?.cancelledOrders?.toLocaleString() || "0"}
+          change={loading ? "Loading..." : "- 0.03%"}
           isPositive={false}
           period="Last 7 days"
         />
@@ -438,7 +464,8 @@ export default function Orders() {
                   { id: "pending", label: "Pending" },
                   { id: "canceled", label: "Canceled" },
                 ]}
-                activeTab={"all"}
+                activeTab={activeTab}
+                onTabChange={handleTabChange}
                 searchOptions={[
                   { value: "id", label: "Search by Order ID" },
                   { value: "customer", label: "Search by Customer" },

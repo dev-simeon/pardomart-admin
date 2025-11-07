@@ -205,6 +205,8 @@ export function StoresTable() {
       onRowClick={(row: Row<any>) => navigate(`/store-management/substore/${row.original.id}`)}
       manualPagination
       pageCount={totalPages}
+      pageIndex={pagination.pageIndex}
+      pageSize={pagination.pageSize}
       onPaginationChange={setPagination}
       getRowId={(row: any) => row.id}
       rowClassName={() => "cursor-pointer"}
