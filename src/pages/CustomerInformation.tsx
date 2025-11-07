@@ -2,27 +2,68 @@ import { useParams } from "react-router-dom";
 import { CustomerProfileHeader } from "@/components/customers/CustomerProfileHeader";
 import { CustomerInfoSidebar } from "@/components/customers/CustomerInfoSidebar";
 import { TransactionHistory } from "@/components/customers/TransactionHistory";
-import { useUser } from "@/hooks/useUser";
+import { useAdminCustomer } from "@/hooks/useAdminCustomer";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function CustomerInformation() {
   const { id } = useParams();
-  const { user } = useUser({ userId: id || "" });
+  const { customer, loading, error } = useAdminCustomer({ customerId: id || "" });
+  const [isSuspending, setIsSuspending] = useState(false);
 
-  const name = user?.name || user?.fullName || user?.email?.split("@")[0] || "";
-  const email = user?.email;
-  const avatarUrl = user?.profileImage;
-  const phone = user?.mobileNumber || user?.phoneNumber;
-  const address = (user as any)?.address || (user as any)?.location || "";
+  const name = customer?.name || customer?.email?.split("@")[0] || "";
+  const email = customer?.email;
+  const avatarUrl = customer?.profileImage;
+  const phone = customer?.mobileNumber;
+  const address = customer?.address || "";
+  const totalOrders = customer?.totalOrders;
+  const completedOrders = customer?.completedOrders;
+  const cancelledOrders = customer?.cancelledOrders;
+
+  const handleSuspendAccount = async () => {
+    if (!id || !customer) return;
+
+    try {
+      setIsSuspending(true);
+      // TODO: Implement the suspend account functionality using the PATCH endpoint
+      toast.success("Account suspension logic to be implemented");
+    } catch (err) {
+      toast.error("Failed to suspend account");
+      console.error(err);
+    } finally {
+      setIsSuspending(false);
+    }
+  };
+
+  if (error) {
+    return (
+      <div className="w-full flex items-center justify-center p-8">
+        <div className="text-center">
+          <p className="text-lg font-semibold text-red-600">Error loading customer</p>
+          <p className="text-sm text-gray-600 mt-2">{error.message}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full space-y-6">
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_379px] gap-5">
         <div className="space-y-6">
-          <CustomerProfileHeader name={name} email={email} avatarUrl={avatarUrl} />
+          <CustomerProfileHeader
+            name={name}
+            email={email}
+            avatarUrl={avatarUrl}
+            totalOrders={totalOrders}
+            completedOrders={completedOrders}
+            cancelledOrders={cancelledOrders}
+            onSuspendClick={handleSuspendAccount}
+            loading={loading || isSuspending}
+          />
         </div>
         <CustomerInfoSidebar address={address} email={email} phone={phone} />
       </div>
-      {id ? <TransactionHistory customerId={id} /> : null}
+      {id ? <TransactionHistory customerId={id} useAdminEndpoint={true} /> : null}
     </div>
   );
 }

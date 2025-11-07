@@ -1,12 +1,12 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import type { ColumnDef, Row } from "@tanstack/react-table";
+import type { ColumnDef, Row } from "@tanstack/react-table"; // Keep this import
 import { OrderStatCard } from "@/components/orders/OrderStatCard";
 import { useAdminOrders } from "@/hooks/useAdminOrders";
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
 import { cn } from "@/lib/utils";
 import { DataTable } from "@/components/ui/data-table";
-
+import { OrderStatus } from "../../api"; // Import OrderStatus enum
 const OrdersIcon = () => (
   <svg
     width="22"
@@ -248,9 +248,6 @@ const CancelledIcon = () => (
 const searchableColumns = ["id", "customer", "date"] as const;
 type SearchableColumn = (typeof searchableColumns)[number];
 
-type OrderStatus = "shipped" | "ready" | "delivered";
-type PaymentStatus = "paid" | "pending";
-
 export default function Orders() {
   const navigate = useNavigate();
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -258,42 +255,60 @@ export default function Orders() {
   const [searchValue, setSearchValue] = useState("");
   const [activeTab, setActiveTab] = useState("all");
 
-  const statusMap: { [key: string]: string | undefined } = {
-    completed: "delivered",
-    pending: "ready,shipped",
-    canceled: "cancelled",
+  // Define the grouped tabs and their corresponding OrderStatus values
+  const ORDER_TAB_GROUPS: {
+    [key: string]: { label: string; statuses?: OrderStatus[] };
+  } = {
+    all: {
+      label: "All Orders",
+      statuses: undefined, // No specific status filter for 'all'
+    },
+    pending: {
+      label: "Pending",
+      statuses: [OrderStatus.Pending, OrderStatus.AcceptedForShopping],
+    },
+    inProgress: {
+      label: "In Progress",
+      statuses: [
+        OrderStatus.CurrentlyShopping,
+        OrderStatus.ReadyForPickup,
+        OrderStatus.ReadyForDelivery,
+        OrderStatus.AcceptedForDelivery,
+        OrderStatus.EnRoute,
+      ],
+    },
+    completed: {
+      label: "Completed",
+      statuses: [OrderStatus.Delivered, OrderStatus.PickedUpByCustomer],
+    },
+    cancelled: {
+      label: "Cancelled",
+      statuses: [OrderStatus.DeclinedByVendor, OrderStatus.CancelledByCustomer],
+    },
   };
 
   const { orders, overview, loading, error, total, totalPages } =
     useAdminOrders({
       page: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
-      status: activeTab !== "all" ? statusMap[activeTab] : undefined,
+      status:
+        activeTab !== "all" ? ORDER_TAB_GROUPS[activeTab]?.statuses : undefined, // Pass the statuses array or undefined based on activeTab
+      search: searchValue || undefined,
+      searchBy: searchValue ? searchColumn : undefined,
     });
 
   const filteredOrders = useMemo(() => {
-    let result = orders;
-
-    // Filter by search (API already handles status filtering)
-    if (searchValue) {
-      const searchLower = searchValue.toLowerCase();
-      result = result.filter((order) => {
-        if (searchColumn === "id" && order.id) {
-          return order.id.toLowerCase().includes(searchLower);
-        }
-        if (searchColumn === "customer" && order.customerId) {
-          return order.customerId.toLowerCase().includes(searchLower);
-        }
-        if (searchColumn === "date" && order.createdAt) {
-          return order.createdAt.toString().includes(searchLower);
-        }
-        return true;
-      });
-    }
-
-    return result;
+    // With server-side search, we no longer need to filter on the client.
+    // The API returns the filtered and paginated data directly.
+    return orders;
   }, [orders, searchColumn, searchValue]);
 
+  // Helper to format enum values into readable labels
+  const formatStatusLabel = (status: string) => {
+    return status
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
   const columns = useMemo<ColumnDef<any, unknown>[]>(
     () => [
       {
@@ -318,7 +333,7 @@ export default function Orders() {
         accessorKey: "paymentStatus",
         header: "Payment Status",
         cell: ({ row }) => {
-          const status = row.original.paymentStatus || "pending";
+          const status = row.original.paymentStatus?.toLowerCase() || "pending";
           const colorClass =
             status === "paid"
               ? "bg-[#C4F8E2] text-[#06A561]"
@@ -339,15 +354,23 @@ export default function Orders() {
         accessorKey: "status",
         header: "Order Status",
         cell: ({ row }) => {
-          const status = row.original.status || "ready";
+          const status = row.original.orderStatus?.toLowerCase() || "pending"; // Use orderStatus from API
           const colorClass =
-            status === "shipped"
-              ? "bg-[#5A607F] text-white"
-              : status === "ready"
-                ? "bg-[rgba(254,189,68,0.20)] text-[#EE9C03]"
-                : status === "delivered"
-                  ? "bg-[#C4F8E2] text-[#06A561]"
-                  : "bg-[#E6E9F4] text-[#5A607F]";
+            status === OrderStatus.Delivered.toLowerCase() ||
+            status === OrderStatus.PickedUpByCustomer.toLowerCase()
+              ? "bg-[#C4F8E2] text-[#06A561]" // Green for completed
+              : status === OrderStatus.CancelledByCustomer.toLowerCase() ||
+                  status === OrderStatus.DeclinedByVendor.toLowerCase()
+                ? "bg-[#FEE2E2] text-[#EF4343]" // Red for cancelled/declined
+                : status === OrderStatus.Pending.toLowerCase() ||
+                    status === OrderStatus.AcceptedForShopping.toLowerCase() ||
+                    status === OrderStatus.CurrentlyShopping.toLowerCase() ||
+                    status === OrderStatus.ReadyForPickup.toLowerCase() ||
+                    status === OrderStatus.ReadyForDelivery.toLowerCase() ||
+                    status === OrderStatus.AcceptedForDelivery.toLowerCase() ||
+                    status === OrderStatus.EnRoute.toLowerCase()
+                  ? "bg-[rgba(254,189,68,0.20)] text-[#EE9C03]" // Orange for various pending states
+                  : "bg-[#E6E9F4] text-[#5A607F]"; // Default/Unknown
           return (
             <div
               className={cn(
@@ -393,13 +416,6 @@ export default function Orders() {
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   };
 
-  const getTabCount = (tabId: string): number | undefined => {
-    if (tabId === "all") {
-      return total;
-    }
-    return undefined;
-  };
-
   if (error) {
     return (
       <div className="space-y-8">
@@ -419,7 +435,7 @@ export default function Orders() {
         <OrderStatCard
           icon={<OrdersIcon />}
           title="Total Orders"
-          value={overview?.totalOrders?.toLocaleString() || "0"}
+          value={overview?.totalOrders?.toLocaleString() ?? "0"}
           change={loading ? "Loading..." : "+ 0.03%"}
           isPositive={true}
           period="Last 7 days"
@@ -427,7 +443,7 @@ export default function Orders() {
         <OrderStatCard
           icon={<ProductsIcon />}
           title="Total Products"
-          value={overview?.totalProducts?.toLocaleString() || "0"}
+          value={overview?.totalProductsOrdered?.toLocaleString() ?? "0"}
           change={loading ? "Loading..." : "+ 0.03%"}
           isPositive={true}
           period="Last 7 days"
@@ -435,7 +451,7 @@ export default function Orders() {
         <OrderStatCard
           icon={<InStockIcon />}
           title="In-Stock Products"
-          value={overview?.inStockProducts?.toLocaleString() || "0"}
+          value={overview?.totalInStockProducts?.toLocaleString() ?? "0"}
           change={loading ? "Loading..." : "+ 0.03%"}
           isPositive={true}
           period="Last 7 days"
@@ -443,7 +459,7 @@ export default function Orders() {
         <OrderStatCard
           icon={<CancelledIcon />}
           title="Cancelled Orders"
-          value={overview?.cancelledOrders?.toLocaleString() || "0"}
+          value={overview?.totalCancelledOrders?.toLocaleString() ?? "0"}
           change={loading ? "Loading..." : "- 0.03%"}
           isPositive={false}
           period="Last 7 days"
@@ -455,15 +471,18 @@ export default function Orders() {
         <div className="space-y-4">
           <DataTable
             columns={columns}
-            data={filteredOrders}
+            data={filteredOrders} // Pass the server-paginated data directly
             toolbar={
               <DataTableToolbar
-                tabs={[
-                  { id: "all", label: "All order", count: total },
-                  { id: "completed", label: "Completed" },
-                  { id: "pending", label: "Pending" },
-                  { id: "canceled", label: "Canceled" },
-                ]}
+                tabs={useMemo(() => {
+                  return Object.entries(ORDER_TAB_GROUPS).map(
+                    ([id, group]) => ({
+                      id: id,
+                      label: group.label,
+                      count: activeTab === id ? total : undefined,
+                    }),
+                  );
+                }, [activeTab, total])}
                 activeTab={activeTab}
                 onTabChange={handleTabChange}
                 searchOptions={[
@@ -487,7 +506,7 @@ export default function Orders() {
               navigate(`/orders/${row.original.id}`)
             }
             manualPagination
-            pageCount={totalPages}
+            pageCount={totalPages ?? 1} // Ensure pageCount is always a number and at least 1
             pageIndex={pagination.pageIndex}
             pageSize={pagination.pageSize}
             onPaginationChange={setPagination}

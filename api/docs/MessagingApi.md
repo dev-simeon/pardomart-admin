@@ -4,9 +4,62 @@ All URIs are relative to *http://localhost:5000/api/v1*
 
 |Method | HTTP request | Description|
 |------------- | ------------- | -------------|
+|[**apiV1OrderAdminOrderIdMessagesGet**](#apiv1orderadminorderidmessagesget) | **GET** /api/v1/order/admin/{orderId}/messages | Get all messages for an order (Admin)|
 |[**apiV1OrderOrderIdMessagesGet**](#apiv1orderorderidmessagesget) | **GET** /api/v1/order/{orderId}/messages | Get messages for an order|
 |[**apiV1OrderOrderIdMessagesPost**](#apiv1orderorderidmessagespost) | **POST** /api/v1/order/{orderId}/messages | Send a message related to an order|
 |[**apiV1OrderOrderIdMessagesReadPatch**](#apiv1orderorderidmessagesreadpatch) | **PATCH** /api/v1/order/{orderId}/messages/read | Mark messages as read|
+
+# **apiV1OrderAdminOrderIdMessagesGet**
+> Array<MessageWithRelations> apiV1OrderAdminOrderIdMessagesGet()
+
+Retrieves the complete conversation history for a specific order. Only accessible by admins.
+
+### Example
+
+```typescript
+import {
+    MessagingApi,
+    Configuration
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new MessagingApi(configuration);
+
+let orderId: string; //The ID of the order. (default to undefined)
+
+const { status, data } = await apiInstance.apiV1OrderAdminOrderIdMessagesGet(
+    orderId
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **orderId** | [**string**] | The ID of the order. | defaults to undefined|
+
+
+### Return type
+
+**Array<MessageWithRelations>**
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | A list of messages for the order. |  -  |
+|**404** | Order not found. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **apiV1OrderOrderIdMessagesGet**
 > Array<MessageWithRelations> apiV1OrderOrderIdMessagesGet()

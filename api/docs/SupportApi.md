@@ -4,10 +4,57 @@ All URIs are relative to *http://localhost:5000/api/v1*
 
 |Method | HTTP request | Description|
 |------------- | ------------- | -------------|
+|[**apiV1SupportAdminOverviewGet**](#apiv1supportadminoverviewget) | **GET** /api/v1/support/admin/overview | Get platform-wide support ticket overview (Admin)|
 |[**apiV1SupportTicketsGet**](#apiv1supportticketsget) | **GET** /api/v1/support/tickets | Get all support tickets (Admin)|
 |[**apiV1SupportTicketsMeGet**](#apiv1supportticketsmeget) | **GET** /api/v1/support/tickets/me | Get my support tickets|
 |[**apiV1SupportTicketsPost**](#apiv1supportticketspost) | **POST** /api/v1/support/tickets | Create a new support ticket|
+|[**apiV1SupportTicketsTicketIdGet**](#apiv1supportticketsticketidget) | **GET** /api/v1/support/tickets/{ticketId} | Get a single support ticket by ID|
 |[**apiV1SupportTicketsTicketIdStatusPatch**](#apiv1supportticketsticketidstatuspatch) | **PATCH** /api/v1/support/tickets/{ticketId}/status | Update a support ticket\&#39;s status (Admin)|
+
+# **apiV1SupportAdminOverviewGet**
+> ApiV1SupportAdminOverviewGet200Response apiV1SupportAdminOverviewGet()
+
+Retrieves aggregate data about support tickets, such as total count, open tickets, and closed tickets. Only accessible by admins.
+
+### Example
+
+```typescript
+import {
+    SupportApi,
+    Configuration
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new SupportApi(configuration);
+
+const { status, data } = await apiInstance.apiV1SupportAdminOverviewGet();
+```
+
+### Parameters
+This endpoint does not have any parameters.
+
+
+### Return type
+
+**ApiV1SupportAdminOverviewGet200Response**
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | An object containing the support ticket overview data. |  -  |
+|**500** | Internal server error. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **apiV1SupportTicketsGet**
 > PaginatedSupportTickets apiV1SupportTicketsGet()
@@ -25,10 +72,18 @@ import {
 const configuration = new Configuration();
 const apiInstance = new SupportApi(configuration);
 
-let page: number; // (optional) (default to 1)
-let size: number; // (optional) (default to 20)
+let customerName: string; //Filter by customer name (case-insensitive). (optional) (default to undefined)
+let status: TicketStatus; //Filter by ticket status. (optional) (default to undefined)
+let createdAtStart: string; //Filter tickets created on or after this date. (optional) (default to undefined)
+let createdAtEnd: string; //Filter tickets created on or before this date. (optional) (default to undefined)
+let page: number; //Page number for pagination. (optional) (default to 1)
+let size: number; //Number of items per page. (optional) (default to 20)
 
 const { status, data } = await apiInstance.apiV1SupportTicketsGet(
+    customerName,
+    status,
+    createdAtStart,
+    createdAtEnd,
     page,
     size
 );
@@ -38,8 +93,12 @@ const { status, data } = await apiInstance.apiV1SupportTicketsGet(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **page** | [**number**] |  | (optional) defaults to 1|
-| **size** | [**number**] |  | (optional) defaults to 20|
+| **customerName** | [**string**] | Filter by customer name (case-insensitive). | (optional) defaults to undefined|
+| **status** | **TicketStatus** | Filter by ticket status. | (optional) defaults to undefined|
+| **createdAtStart** | [**string**] | Filter tickets created on or after this date. | (optional) defaults to undefined|
+| **createdAtEnd** | [**string**] | Filter tickets created on or before this date. | (optional) defaults to undefined|
+| **page** | [**number**] | Page number for pagination. | (optional) defaults to 1|
+| **size** | [**number**] | Number of items per page. | (optional) defaults to 20|
 
 
 ### Return type
@@ -163,6 +222,60 @@ const { status, data } = await apiInstance.apiV1SupportTicketsPost(
 |**201** | The created support ticket. |  -  |
 |**400** | Bad request (e.g., invalid input). |  -  |
 |**401** | Unauthorized. |  -  |
+|**500** | Internal server error. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **apiV1SupportTicketsTicketIdGet**
+> SupportTicket apiV1SupportTicketsTicketIdGet()
+
+Retrieves the details of a specific support ticket. Accessible by the user who created the ticket or an admin.
+
+### Example
+
+```typescript
+import {
+    SupportApi,
+    Configuration
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new SupportApi(configuration);
+
+let ticketId: string; //The ID of the support ticket to retrieve. (default to undefined)
+
+const { status, data } = await apiInstance.apiV1SupportTicketsTicketIdGet(
+    ticketId
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **ticketId** | [**string**] | The ID of the support ticket to retrieve. | defaults to undefined|
+
+
+### Return type
+
+**SupportTicket**
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | The support ticket details. |  -  |
+|**403** | Forbidden (user is not authorized to view this ticket). |  -  |
+|**404** | Ticket not found. |  -  |
 |**500** | Internal server error. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

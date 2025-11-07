@@ -63,6 +63,8 @@ import type { VendorWithDetails } from '../models';
 import type { VendorWithRelations } from '../models';
 // @ts-ignore
 import type { VendorsIncompleteSetupsGet200Response } from '../models';
+// @ts-ignore
+import type { VendorsOverviewGet200Response } from '../models';
 /**
  * VendorApi - axios parameter creator
  */
@@ -575,12 +577,16 @@ export const VendorApiAxiosParamCreator = function (configuration?: Configuratio
          * @param {number} [latitude] User\&#39;s current latitude to sort vendors by distance.
          * @param {number} [longitude] User\&#39;s current longitude to sort vendors by distance.
          * @param {string} [userId] Filter vendors by the user who owns them.
+         * @param {boolean} [isVerified] Filter vendors by their verification status.
+         * @param {boolean} [isPublished] Filter vendors by their published status.
+         * @param {string} [createdAtStart] Filter vendors created on or after this date (ISO 8601 format).
+         * @param {string} [createdAtEnd] Filter vendors created on or before this date (ISO 8601 format).
          * @param {number} [page] Page number for pagination.
          * @param {number} [size] Number of items per page.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        vendorsGet: async (name?: string, latitude?: number, longitude?: number, userId?: string, page?: number, size?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        vendorsGet: async (name?: string, latitude?: number, longitude?: number, userId?: string, isVerified?: boolean, isPublished?: boolean, createdAtStart?: string, createdAtEnd?: string, page?: number, size?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/vendors`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -607,6 +613,26 @@ export const VendorApiAxiosParamCreator = function (configuration?: Configuratio
 
             if (userId !== undefined) {
                 localVarQueryParameter['userId'] = userId;
+            }
+
+            if (isVerified !== undefined) {
+                localVarQueryParameter['isVerified'] = isVerified;
+            }
+
+            if (isPublished !== undefined) {
+                localVarQueryParameter['isPublished'] = isPublished;
+            }
+
+            if (createdAtStart !== undefined) {
+                localVarQueryParameter['createdAtStart'] = (createdAtStart as any instanceof Date) ?
+                    (createdAtStart as any).toISOString() :
+                    createdAtStart;
+            }
+
+            if (createdAtEnd !== undefined) {
+                localVarQueryParameter['createdAtEnd'] = (createdAtEnd as any instanceof Date) ?
+                    (createdAtEnd as any).toISOString() :
+                    createdAtEnd;
             }
 
             if (page !== undefined) {
@@ -895,6 +921,40 @@ export const VendorApiAxiosParamCreator = function (configuration?: Configuratio
             };
         },
         /**
+         * Retrieves aggregate data about the platform, such as the total number of vendor users, stores, and staff members. Only accessible by admins.
+         * @summary Get platform overview data (Admin)
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        vendorsOverviewGet: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/vendors/overview`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Creates a new vendor profile linked to the authenticated user. Default opening hours from 9:00 to 18:00 are created automatically for all days of the week.
          * @summary Create a new vendor
          * @param {CreateVendorPayload} createVendorPayload 
@@ -928,6 +988,44 @@ export const VendorApiAxiosParamCreator = function (configuration?: Configuratio
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(createVendorPayload, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Retrieves the details of a specific user who has the \'vendor\' role. Intended for admin use.
+         * @summary Get a single vendor user by their User ID (Admin)
+         * @param {string} userId The ID of the vendor user to retrieve.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        vendorsUsersUserIdGet: async (userId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'userId' is not null or undefined
+            assertParamExists('vendorsUsersUserIdGet', 'userId', userId)
+            const localVarPath = `/vendors/users/{userId}`
+                .replace(`{${"userId"}}`, encodeURIComponent(String(userId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -1114,13 +1212,17 @@ export const VendorApiFp = function(configuration?: Configuration) {
          * @param {number} [latitude] User\&#39;s current latitude to sort vendors by distance.
          * @param {number} [longitude] User\&#39;s current longitude to sort vendors by distance.
          * @param {string} [userId] Filter vendors by the user who owns them.
+         * @param {boolean} [isVerified] Filter vendors by their verification status.
+         * @param {boolean} [isPublished] Filter vendors by their published status.
+         * @param {string} [createdAtStart] Filter vendors created on or after this date (ISO 8601 format).
+         * @param {string} [createdAtEnd] Filter vendors created on or before this date (ISO 8601 format).
          * @param {number} [page] Page number for pagination.
          * @param {number} [size] Number of items per page.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async vendorsGet(name?: string, latitude?: number, longitude?: number, userId?: string, page?: number, size?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedVendors>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.vendorsGet(name, latitude, longitude, userId, page, size, options);
+        async vendorsGet(name?: string, latitude?: number, longitude?: number, userId?: string, isVerified?: boolean, isPublished?: boolean, createdAtStart?: string, createdAtEnd?: string, page?: number, size?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedVendors>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.vendorsGet(name, latitude, longitude, userId, isVerified, isPublished, createdAtStart, createdAtEnd, page, size, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['VendorApi.vendorsGet']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -1218,6 +1320,18 @@ export const VendorApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Retrieves aggregate data about the platform, such as the total number of vendor users, stores, and staff members. Only accessible by admins.
+         * @summary Get platform overview data (Admin)
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async vendorsOverviewGet(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<VendorsOverviewGet200Response>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.vendorsOverviewGet(options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['VendorApi.vendorsOverviewGet']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Creates a new vendor profile linked to the authenticated user. Default opening hours from 9:00 to 18:00 are created automatically for all days of the week.
          * @summary Create a new vendor
          * @param {CreateVendorPayload} createVendorPayload 
@@ -1228,6 +1342,19 @@ export const VendorApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.vendorsPost(createVendorPayload, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['VendorApi.vendorsPost']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Retrieves the details of a specific user who has the \'vendor\' role. Intended for admin use.
+         * @summary Get a single vendor user by their User ID (Admin)
+         * @param {string} userId The ID of the vendor user to retrieve.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async vendorsUsersUserIdGet(userId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.vendorsUsersUserIdGet(userId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['VendorApi.vendorsUsersUserIdGet']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
     }
@@ -1374,13 +1501,17 @@ export const VendorApiFactory = function (configuration?: Configuration, basePat
          * @param {number} [latitude] User\&#39;s current latitude to sort vendors by distance.
          * @param {number} [longitude] User\&#39;s current longitude to sort vendors by distance.
          * @param {string} [userId] Filter vendors by the user who owns them.
+         * @param {boolean} [isVerified] Filter vendors by their verification status.
+         * @param {boolean} [isPublished] Filter vendors by their published status.
+         * @param {string} [createdAtStart] Filter vendors created on or after this date (ISO 8601 format).
+         * @param {string} [createdAtEnd] Filter vendors created on or before this date (ISO 8601 format).
          * @param {number} [page] Page number for pagination.
          * @param {number} [size] Number of items per page.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        vendorsGet(name?: string, latitude?: number, longitude?: number, userId?: string, page?: number, size?: number, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedVendors> {
-            return localVarFp.vendorsGet(name, latitude, longitude, userId, page, size, options).then((request) => request(axios, basePath));
+        vendorsGet(name?: string, latitude?: number, longitude?: number, userId?: string, isVerified?: boolean, isPublished?: boolean, createdAtStart?: string, createdAtEnd?: string, page?: number, size?: number, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedVendors> {
+            return localVarFp.vendorsGet(name, latitude, longitude, userId, isVerified, isPublished, createdAtStart, createdAtEnd, page, size, options).then((request) => request(axios, basePath));
         },
         /**
          * Retrieves a list of all vendors associated with the currently authenticated user.
@@ -1454,6 +1585,15 @@ export const VendorApiFactory = function (configuration?: Configuration, basePat
             return localVarFp.vendorsIncompleteSetupsGet(options).then((request) => request(axios, basePath));
         },
         /**
+         * Retrieves aggregate data about the platform, such as the total number of vendor users, stores, and staff members. Only accessible by admins.
+         * @summary Get platform overview data (Admin)
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        vendorsOverviewGet(options?: RawAxiosRequestConfig): AxiosPromise<VendorsOverviewGet200Response> {
+            return localVarFp.vendorsOverviewGet(options).then((request) => request(axios, basePath));
+        },
+        /**
          * Creates a new vendor profile linked to the authenticated user. Default opening hours from 9:00 to 18:00 are created automatically for all days of the week.
          * @summary Create a new vendor
          * @param {CreateVendorPayload} createVendorPayload 
@@ -1462,6 +1602,16 @@ export const VendorApiFactory = function (configuration?: Configuration, basePat
          */
         vendorsPost(createVendorPayload: CreateVendorPayload, options?: RawAxiosRequestConfig): AxiosPromise<VendorWithRelations> {
             return localVarFp.vendorsPost(createVendorPayload, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Retrieves the details of a specific user who has the \'vendor\' role. Intended for admin use.
+         * @summary Get a single vendor user by their User ID (Admin)
+         * @param {string} userId The ID of the vendor user to retrieve.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        vendorsUsersUserIdGet(userId: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.vendorsUsersUserIdGet(userId, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -1617,13 +1767,17 @@ export class VendorApi extends BaseAPI {
      * @param {number} [latitude] User\&#39;s current latitude to sort vendors by distance.
      * @param {number} [longitude] User\&#39;s current longitude to sort vendors by distance.
      * @param {string} [userId] Filter vendors by the user who owns them.
+     * @param {boolean} [isVerified] Filter vendors by their verification status.
+     * @param {boolean} [isPublished] Filter vendors by their published status.
+     * @param {string} [createdAtStart] Filter vendors created on or after this date (ISO 8601 format).
+     * @param {string} [createdAtEnd] Filter vendors created on or before this date (ISO 8601 format).
      * @param {number} [page] Page number for pagination.
      * @param {number} [size] Number of items per page.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public vendorsGet(name?: string, latitude?: number, longitude?: number, userId?: string, page?: number, size?: number, options?: RawAxiosRequestConfig) {
-        return VendorApiFp(this.configuration).vendorsGet(name, latitude, longitude, userId, page, size, options).then((request) => request(this.axios, this.basePath));
+    public vendorsGet(name?: string, latitude?: number, longitude?: number, userId?: string, isVerified?: boolean, isPublished?: boolean, createdAtStart?: string, createdAtEnd?: string, page?: number, size?: number, options?: RawAxiosRequestConfig) {
+        return VendorApiFp(this.configuration).vendorsGet(name, latitude, longitude, userId, isVerified, isPublished, createdAtStart, createdAtEnd, page, size, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -1705,6 +1859,16 @@ export class VendorApi extends BaseAPI {
     }
 
     /**
+     * Retrieves aggregate data about the platform, such as the total number of vendor users, stores, and staff members. Only accessible by admins.
+     * @summary Get platform overview data (Admin)
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public vendorsOverviewGet(options?: RawAxiosRequestConfig) {
+        return VendorApiFp(this.configuration).vendorsOverviewGet(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Creates a new vendor profile linked to the authenticated user. Default opening hours from 9:00 to 18:00 are created automatically for all days of the week.
      * @summary Create a new vendor
      * @param {CreateVendorPayload} createVendorPayload 
@@ -1713,6 +1877,17 @@ export class VendorApi extends BaseAPI {
      */
     public vendorsPost(createVendorPayload: CreateVendorPayload, options?: RawAxiosRequestConfig) {
         return VendorApiFp(this.configuration).vendorsPost(createVendorPayload, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Retrieves the details of a specific user who has the \'vendor\' role. Intended for admin use.
+     * @summary Get a single vendor user by their User ID (Admin)
+     * @param {string} userId The ID of the vendor user to retrieve.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public vendorsUsersUserIdGet(userId: string, options?: RawAxiosRequestConfig) {
+        return VendorApiFp(this.configuration).vendorsUsersUserIdGet(userId, options).then((request) => request(this.axios, this.basePath));
     }
 }
 

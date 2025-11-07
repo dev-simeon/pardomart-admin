@@ -6,6 +6,9 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { supportApi } from "@/lib/apiClient";
 import type { PaginatedSupportTickets, SupportTicket, TicketStatus } from "../../api";
 import { useQuery } from "@tanstack/react-query";
+import { useAdminSupportOverview } from "@/hooks/useAdminSupportOverview";
+import { UpdateTicketStatusModal } from "@/components/support/UpdateTicketStatusModal";
+import { toast } from "sonner";
 
 import {
   TotalTicketsIcon,
@@ -38,11 +41,32 @@ export default function Support() {
   const [searchValue, setSearchValue] = useState("");
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("all");
+
+  const { overview, loading: overviewLoading } = useAdminSupportOverview();
+
+  const getStatusFromTab = (tabId: string): TicketStatus | undefined => {
+    switch (tabId) {
+      case "open":
+        return "OPEN" as TicketStatus;
+      case "in_progress":
+        return "IN_PROGRESS" as TicketStatus;
+      case "resolved":
+        return "RESOLVED" as TicketStatus;
+      case "closed":
+        return "CLOSED" as TicketStatus;
+      default:
+        return undefined;
+    }
+  };
 
   const { data, isLoading, refetch } = useQuery<PaginatedSupportTickets>({
-    queryKey: ["supportTickets", pageIndex, pageSize],
+    queryKey: ["supportTickets", pageIndex, pageSize, activeTab],
     queryFn: async () => {
-      const res = await supportApi.apiV1SupportTicketsGet(pageIndex + 1, pageSize);
+      const status = getStatusFromTab(activeTab);
+      const res = await supportApi.apiV1SupportTicketsGet(undefined, status, undefined, undefined, pageIndex + 1, pageSize);
       return res.data as PaginatedSupportTickets;
     },
     keepPreviousData: true,
@@ -53,6 +77,16 @@ export default function Support() {
   const tickets = data?.data ?? [];
   const totalPages = data?.totalPages ?? 1;
   const totalCount = data?.totalCount ?? tickets.length;
+
+  const handleStatusUpdated = (updatedTicket: SupportTicket) => {
+    setSelectedTicket(null);
+    void refetch();
+  };
+
+  const handleActiveTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    setPageIndex(0);
+  };
 
   const filtered = useMemo(() => {
     if (!searchValue) return tickets;
@@ -65,6 +99,20 @@ export default function Support() {
   }, [tickets, searchValue]);
 
   const statusCounts = useMemo(() => {
+    if (overviewLoading) {
+      return { all: totalCount, open: 0, inProgress: 0, resolved: 0, closed: 0 };
+    }
+
+    if (overview) {
+      return {
+        all: overview.totalTickets ?? totalCount,
+        open: overview.openTickets ?? 0,
+        inProgress: 0, // Not provided by API, will be calculated from tickets
+        resolved: 0, // Not provided by API, will be calculated from tickets
+        closed: overview.closedTickets ?? 0,
+      };
+    }
+
     const base = { all: totalCount, open: 0, inProgress: 0, resolved: 0, closed: 0 };
     for (const t of tickets) {
       switch (t.status) {
@@ -75,7 +123,7 @@ export default function Support() {
       }
     }
     return base;
-  }, [tickets, totalCount]);
+  }, [tickets, totalCount, overview, overviewLoading]);
 
   const columns: ColumnDef<SupportTicket>[] = [
     {
@@ -108,10 +156,19 @@ export default function Support() {
     },
     {
       header: "Action",
-      cell: () => (
+      cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <button className="hover:opacity-70 transition-opacity"><MessageIcon /></button>
-          <button className="hover:opacity-70 transition-opacity"><DeleteIcon /></button>
+          <button
+            onClick={() => {
+              setSelectedTicket(row.original);
+              setStatusModalOpen(true);
+            }}
+            className="hover:opacity-70 transition-opacity"
+            title="Update status"
+          >
+            <MessageIcon />
+          </button>
+          <button className="hover:opacity-70 transition-opacity" title="Delete ticket"><DeleteIcon /></button>
         </div>
       ),
       meta: { headerClassName: "min-w-[120px]" },
@@ -121,10 +178,58 @@ export default function Support() {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <SupportStatCard icon={<TotalTicketsIcon />} title="Total Tickets" value={String(totalCount)} />
-        <SupportStatCard icon={<OpenTicketsIcon />} title="Open Tickets" value={String(statusCounts.open)} />
-        <SupportStatCard icon={<ClosedTicketsIcon />} title="Closed Tickets" value={String(statusCounts.closed)} />
-        <SupportStatCard icon={<AnsweredTicketsIcon />} title="Resolved" value={String(statusCounts.resolved)} />
+        {activeTab === "all" && (
+          <>
+            <SupportStatCard
+              icon={<TotalTicketsIcon />}
+              title="Total Tickets"
+              value={overviewLoading ? "..." : String(statusCounts.all)}
+            />
+            <SupportStatCard
+              icon={<OpenTicketsIcon />}
+              title="Open Tickets"
+              value={overviewLoading ? "..." : String(statusCounts.open)}
+            />
+            <SupportStatCard
+              icon={<ClosedTicketsIcon />}
+              title="Closed Tickets"
+              value={overviewLoading ? "..." : String(statusCounts.closed)}
+            />
+            <SupportStatCard
+              icon={<AnsweredTicketsIcon />}
+              title="Resolved"
+              value={overviewLoading ? "..." : String(statusCounts.resolved)}
+            />
+          </>
+        )}
+        {activeTab === "open" && (
+          <SupportStatCard
+            icon={<OpenTicketsIcon />}
+            title="Open Tickets"
+            value={overviewLoading ? "..." : String(statusCounts.open)}
+          />
+        )}
+        {activeTab === "in_progress" && (
+          <SupportStatCard
+            icon={<AnsweredTicketsIcon />}
+            title="In Progress"
+            value={overviewLoading ? "..." : String(statusCounts.inProgress)}
+          />
+        )}
+        {activeTab === "resolved" && (
+          <SupportStatCard
+            icon={<AnsweredTicketsIcon />}
+            title="Resolved"
+            value={overviewLoading ? "..." : String(statusCounts.resolved)}
+          />
+        )}
+        {activeTab === "closed" && (
+          <SupportStatCard
+            icon={<ClosedTicketsIcon />}
+            title="Closed Tickets"
+            value={overviewLoading ? "..." : String(statusCounts.closed)}
+          />
+        )}
       </div>
 
       <DataTable
@@ -144,13 +249,14 @@ export default function Support() {
         toolbar={
           <DataTableToolbar
             tabs={[
-              { id: "all", label: "All Tickets", count: statusCounts.all },
-              { id: "open", label: "Open", count: statusCounts.open },
-              { id: "in_progress", label: "In Progress", count: statusCounts.inProgress },
-              { id: "resolved", label: "Resolved", count: statusCounts.resolved },
-              { id: "closed", label: "Closed", count: statusCounts.closed },
+              { id: "all", label: "All Tickets" },
+              { id: "open", label: "Open" },
+              { id: "in_progress", label: "In Progress" },
+              { id: "resolved", label: "Resolved" },
+              { id: "closed", label: "Closed" },
             ]}
-            activeTab={"all"}
+            activeTab={activeTab}
+            onTabChange={handleActiveTabChange}
             searchColumn={"title"}
             onSearchColumnChange={() => {}}
             searchValue={searchValue}
@@ -161,6 +267,13 @@ export default function Support() {
             ctaButton={{ label: "Add Ticket", onClick: () => {} , icon: <AddIcon /> }}
           />
         }
+      />
+
+      <UpdateTicketStatusModal
+        open={statusModalOpen}
+        onOpenChange={setStatusModalOpen}
+        ticket={selectedTicket}
+        onStatusUpdated={handleStatusUpdated}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable } from "@/components/ui/data-table"; // Keep this import
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
 import { cn } from "@/lib/utils";
 import { TransactionDetailsModal } from "@/components/transactions";
@@ -226,9 +226,7 @@ interface TransactionDisplay {
   status: TransactionStatus;
 }
 
-const formatTransactionStatus = (
-  status?: string
-): TransactionStatus => {
+const formatTransactionStatus = (status?: string): TransactionStatus => {
   if (!status) return "pending";
   const statusLower = status.toLowerCase();
   if (statusLower.includes("complete") || statusLower.includes("success"))
@@ -280,17 +278,11 @@ export default function Transactions() {
     status: TransactionStatus;
   } | null>(null);
 
-  const statusMap: { [key: string]: string | undefined } = {
-    completed: "complete",
-    pending: "pending",
-    canceled: "cancelled",
-  };
-
   const { transactions, overview, loading, error, total, totalPages } =
     useAdminTransactions({
       page: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
-      status: activeTab !== "all" ? statusMap[activeTab] : undefined,
+      // status: activeTab !== "all" ? getStatusForApi(activeTab) : undefined, // Temporarily disabled
     });
 
   const getStatusDisplay = (status: TransactionStatus) => {
@@ -328,36 +320,34 @@ export default function Transactions() {
       dateTime: formatDateTime(tx.createdAt),
       amount: formatAmount(tx.amount),
       method: tx.source || "Unknown",
-      status: formatTransactionStatus(tx.status),
+      status: formatTransactionStatus(tx.status), // tx.status is already TransactionStatus
     }));
   }, [transactions]);
 
+  // Client-side filtering since API status filter is not ready
   const filteredTransactions = useMemo(() => {
-    let result = transactionDisplays;
-
-    // Filter by search (API already handles status filtering)
-    if (searchValue) {
-      const searchLower = searchValue.toLowerCase();
-      result = result.filter((transaction) => {
-        if (searchColumn === "id") {
-          return transaction.id.toLowerCase().includes(searchLower);
-        }
-        if (searchColumn === "amount") {
-          return transaction.amount.toLowerCase().includes(searchLower);
-        }
-        return true;
-      });
+    if (activeTab === "all") {
+      return transactionDisplays;
     }
+    const statusMap: { [key: string]: TransactionDisplay["status"] } = {
+      completed: "complete",
+      pending: "pending",
+      cancelled: "cancelled",
+    };
+    const targetStatus = statusMap[activeTab];
+    return transactionDisplays.filter((tx) => tx.status === targetStatus);
+  }, [transactionDisplays, activeTab]);
 
-    return result;
-  }, [transactionDisplays, searchColumn, searchValue]);
-
+  // Client-side counting for tabs
   const statusCounts = useMemo(() => {
     return {
       all: transactionDisplays.length,
-      complete: transactionDisplays.filter((tx) => tx.status === "complete").length,
-      pending: transactionDisplays.filter((tx) => tx.status === "pending").length,
-      cancelled: transactionDisplays.filter((tx) => tx.status === "cancelled").length,
+      completed: transactionDisplays.filter((tx) => tx.status === "complete")
+        .length,
+      pending: transactionDisplays.filter((tx) => tx.status === "pending")
+        .length,
+      cancelled: transactionDisplays.filter((tx) => tx.status === "cancelled")
+        .length,
     };
   }, [transactionDisplays]);
 
@@ -400,7 +390,7 @@ export default function Transactions() {
       {
         accessorKey: "status",
         header: "Status",
-        cell: ({ row }) => getStatusDisplay(row.original.status),
+        cell: ({ row }) => getStatusDisplay(row.original.status), // Use TransactionDisplay status
       },
       {
         id: "actions",
@@ -438,6 +428,13 @@ export default function Transactions() {
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   };
 
+  // Helper to format enum values into readable labels
+  const formatStatusLabel = (status: string) => {
+    return status
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
@@ -450,9 +447,7 @@ export default function Transactions() {
           <h2 className="font-sans text-lg font-semibold text-red-800">
             Error Loading Transactions
           </h2>
-          <p className="mt-2 font-sans text-sm text-red-700">
-            {error.message}
-          </p>
+          <p className="mt-2 font-sans text-sm text-red-700">{error.message}</p>
         </div>
       </div>
     );
@@ -461,7 +456,7 @@ export default function Transactions() {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
+        <StatCard // totalTransactions is a number, no need for toLocaleString() if it's already formatted
           icon={<TotalTransactionIcon />}
           title="Total Transaction"
           value={overview?.totalTransactions.toLocaleString() || "0"}
@@ -471,9 +466,9 @@ export default function Transactions() {
         />
         <StatCard
           icon={<TotalIncomeIcon />}
-          title="Total Income"
+          title="Total Income" // totalIncome is a number, format to currency
           value={
-            overview
+            overview?.totalIncome !== undefined
               ? formatAmount(overview.totalIncome).replace("$", "")
               : "0"
           }
@@ -483,10 +478,10 @@ export default function Transactions() {
         />
         <StatCard
           icon={<TotalExpensesIcon />}
-          title="Total Expenses"
+          title="Total Expenses" // totalExpenses is a number, format to currency
           value={
-            overview
-              ? formatAmount(overview.totalExpenses).replace("$", "")
+            overview?.totalExpense !== undefined
+              ? formatAmount(overview.totalExpense).replace("$", "")
               : "0"
           }
           change={loading ? "Loading..." : "+ 0.03%"}
@@ -495,10 +490,10 @@ export default function Transactions() {
         />
         <StatCard
           icon={<TotalRevenueIcon />}
-          title="Total Revenue"
+          title="Total Revenue" // totalRevenue is a number, format to currency
           value={
-            overview
-              ? formatAmount(overview.totalRevenue).replace("$", "")
+            overview?.revenue !== undefined
+              ? formatAmount(overview.revenue).replace("$", "")
               : "0"
           }
           change={loading ? "Loading..." : "- 0.03%"}
@@ -511,7 +506,7 @@ export default function Transactions() {
         <div className="space-y-4">
           <DataTable
             columns={columns}
-            data={filteredTransactions}
+            data={filteredTransactions} // Use client-side filtered data
             loading={loading}
             emptyMessage={
               searchValue
@@ -521,10 +516,26 @@ export default function Transactions() {
             toolbar={
               <DataTableToolbar
                 tabs={[
-                  { id: "all", label: "All transaction", count: total },
-                  { id: "completed", label: "Completed", count: statusCounts.complete },
-                  { id: "pending", label: "Pending", count: statusCounts.pending },
-                  { id: "canceled", label: "Canceled", count: statusCounts.cancelled },
+                  {
+                    id: "all",
+                    label: "All Transactions",
+                    count: statusCounts.all,
+                  },
+                  {
+                    id: "completed",
+                    label: "Completed",
+                    count: statusCounts.completed,
+                  },
+                  {
+                    id: "pending",
+                    label: "Pending",
+                    count: statusCounts.pending,
+                  },
+                  {
+                    id: "cancelled",
+                    label: "Cancelled",
+                    count: statusCounts.cancelled,
+                  },
                 ]}
                 activeTab={activeTab}
                 onTabChange={handleTabChange}

@@ -5,10 +5,12 @@ import { DataTable } from "@/components/ui/data-table";
 import DataTableToolbar from "@/pages/data-table-toolbar";
 import { TransactionDetailsModal } from "@/components/transactions";
 import { useCustomerTransactions } from "@/hooks/useCustomerTransactions";
+import { useAdminCustomerTransactions } from "@/hooks/useAdminCustomerTransactions";
 import type { Transaction as ApiTransaction } from "../../../api";
 
 export type CustomerTransactionHistoryProps = {
   customerId: string;
+  useAdminEndpoint?: boolean;
 };
 
 type RowStatus = "complete" | "cancelled" | "pending";
@@ -52,12 +54,22 @@ function formatDateTime(iso?: string) {
 
 export function TransactionHistory({
   customerId,
+  useAdminEndpoint = false,
 }: CustomerTransactionHistoryProps) {
   const navigate = useNavigate();
-  const { transactions, loading } = useCustomerTransactions({
+  const { transactions: regularTransactions, loading: regularLoading } = useCustomerTransactions({
     customerId,
     limit: 5,
   });
+  const { transactions: adminTransactions, loading: adminLoading } = useAdminCustomerTransactions({
+    customerId,
+    page: 1,
+    size: 5,
+  });
+
+  const transactions = useAdminEndpoint ? adminTransactions : regularTransactions;
+  const loading = useAdminEndpoint ? adminLoading : regularLoading;
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selected, setSelected] = useState<RowTx | null>(null);
 

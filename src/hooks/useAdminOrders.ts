@@ -1,113 +1,83 @@
-import { useState, useEffect } from 'react';
-import { axiosInstance } from '@/lib/apiClient';
-import type { Order } from '../../api';
+import { useQueries, keepPreviousData } from "@tanstack/react-query";
+import { adminApi } from "@/lib/apiClient";
+import type { AxiosResponse } from "axios";
+import type { Order, OrderAdminOverviewGet200Response, OrderStatus } from "../../api"; // Import OrderStatus and the correct overview response type
 
-interface AdminOrderOverview {
-  totalOrders: number;
-  totalProducts: number;
-  inStockProducts: number;
-  cancelledOrders: number;
-}
-
-interface PaginatedOrdersResponse {
+// Define a more accurate PaginatedOrders type based on the API response structure
+// This should ideally come from your generated API types if it's correct.
+// If not, you might need to adjust your OpenAPI spec or manually define it.
+interface PaginatedOrders {
   data: Order[];
-  pagination: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-  };
-}
-
-interface UseAdminOrdersOptions {
-  page?: number;
-  pageSize?: number;
-  status?: string;
-}
-
-interface UseAdminOrdersResult {
-  orders: Order[];
-  overview: AdminOrderOverview | null;
-  loading: boolean;
-  error: Error | null;
-  total: number;
+  page: number;
   totalPages: number;
   pageSize: number;
+  totalCount: number; 
 }
 
-export function useAdminOrders(
-  options: UseAdminOrdersOptions = {}
-): UseAdminOrdersResult {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [overview, setOverview] = useState<AdminOrderOverview | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
+interface UseAdminOrdersProps {
+  page?: number;
+  pageSize?: number;
+  status?: OrderStatus | OrderStatus[] | string; // Allow single status, array of statuses, or string
+  search?: string;
+  searchBy?: string;
+}
 
-  const { page = 1, pageSize = 10, status } = options;
+export function useAdminOrders({
+  page = 1,
+  pageSize = 10,
+  status,
+  search,
+  searchBy,
+}: UseAdminOrdersProps) {
+  const results = useQueries({
+    queries: [
+      {
+        queryKey: ["adminOrders", page, pageSize, status, search, searchBy],
+        queryFn: async () => {
+          // Map search and searchBy to the correct API parameters
+          const orderCodeParam = searchBy === "id" ? search : undefined;
+          const customerNameParam = searchBy === "customer" ? search : undefined;
+          // For 'date' search, assuming it's a single date string for both start and end.
+          // If the API expects a date range, more complex parsing would be needed here.
+          const createdAtStartParam = searchBy === "date" ? search : undefined;
+          const createdAtEndParam = searchBy === "date" ? search : undefined;
 
-  useEffect(() => {
-    let mounted = true;
-
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const [overviewRes, ordersRes] = await Promise.all([
-          axiosInstance.get<AdminOrderOverview>('/order/admin/overview'),
-          axiosInstance.get<PaginatedOrdersResponse>(
-            '/order/admin/all',
-            {
-              params: {
-                page,
-                pageSize,
-                ...(status ? { status } : {}),
-              },
-            }
-          ),
-        ]);
-
-        if (mounted) {
-          setOverview(overviewRes.data);
-
-          if (ordersRes.data) {
-            const result = ordersRes.data as PaginatedOrdersResponse;
-            setOrders(result.data || []);
-            if (result.pagination) {
-              setTotal(result.pagination.total || 0);
-              setTotalPages(result.pagination.totalPages || 0);
-            }
-          }
-        }
-      } catch (err) {
-        if (mounted) {
-          setError(
-            err instanceof Error ? err : new Error('Failed to fetch orders')
+          const response = await adminApi.orderAdminAllGet(
+            orderCodeParam,
+            apiStatus as OrderStatus, // Cast apiStatus to OrderStatus, assuming API handles string or enum or comma-separated string
+            customerNameParam,
+            createdAtStartParam,
+            createdAtEndParam,
+            page,
+            pageSize, // The API parameter is 'size', but the hook prop is 'pageSize'
           );
-          setOrders([]);
-          setOverview(null);
-        }
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
+          // The generated client's orderAdminAllGet returns AxiosPromise<void> in the context.
+          // This is likely incorrect and should return a PaginatedOrders structure.
+          // We cast it here assuming the actual response data matches PaginatedOrders.
+          return (response as unknown as AxiosResponse<PaginatedOrders>).data;
+        },
+        placeholderData: keepPreviousData,
+      },
+      {
+        queryKey: ["adminOrdersOverview"],
+        queryFn: async () => {
+          const response = await adminApi.orderAdminOverviewGet();
+          return response.data as OrderAdminOverviewGet200Response;
+        },
+        staleTime: 60000, // Refetch overview data less frequently
+      },
+    ],
+  });
 
-    fetchData();
+  const ordersQuery = results[0];
+  const overviewQuery = results[1];
 
-    return () => {
-      mounted = false;
-    };
-  }, [page, pageSize, status]);
+  // Prepare status for API call: if it's an array, join it with commas
+  const apiStatus = Array.isArray(status) ? status.join(',') : status;
 
-  return {
-    orders,
-    overview,
-    loading,
-    error,
-    total,
-    totalPages,
-    pageSize,
-  };
+  const orders = ordersQuery.data?.data ?? [];
+  const total = ordersQuery.data?.totalCount;
+  const totalPages = ordersQuery.data?.totalPages;
+
+  return { orders, overview: overviewQuery.data, loading: ordersQuery.isLoading || overviewQuery.isLoading, error: ordersQuery.error || overviewQuery.error, total, totalPages };
 }

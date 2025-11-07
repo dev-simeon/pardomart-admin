@@ -33,6 +33,44 @@ import type { MessageWithRelations } from '../models';
 export const MessagingApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
+         * Retrieves the complete conversation history for a specific order. Only accessible by admins.
+         * @summary Get all messages for an order (Admin)
+         * @param {string} orderId The ID of the order.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiV1OrderAdminOrderIdMessagesGet: async (orderId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'orderId' is not null or undefined
+            assertParamExists('apiV1OrderAdminOrderIdMessagesGet', 'orderId', orderId)
+            const localVarPath = `/api/v1/order/admin/{orderId}/messages`
+                .replace(`{${"orderId"}}`, encodeURIComponent(String(orderId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Retrieves the conversation history for a specific order. The user must be a participant in the order (customer, shopper, or delivery person).
          * @summary Get messages for an order
          * @param {string} orderId The ID of the order.
@@ -162,6 +200,19 @@ export const MessagingApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = MessagingApiAxiosParamCreator(configuration)
     return {
         /**
+         * Retrieves the complete conversation history for a specific order. Only accessible by admins.
+         * @summary Get all messages for an order (Admin)
+         * @param {string} orderId The ID of the order.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiV1OrderAdminOrderIdMessagesGet(orderId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<MessageWithRelations>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiV1OrderAdminOrderIdMessagesGet(orderId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['MessagingApi.apiV1OrderAdminOrderIdMessagesGet']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Retrieves the conversation history for a specific order. The user must be a participant in the order (customer, shopper, or delivery person).
          * @summary Get messages for an order
          * @param {string} orderId The ID of the order.
@@ -211,6 +262,16 @@ export const MessagingApiFactory = function (configuration?: Configuration, base
     const localVarFp = MessagingApiFp(configuration)
     return {
         /**
+         * Retrieves the complete conversation history for a specific order. Only accessible by admins.
+         * @summary Get all messages for an order (Admin)
+         * @param {string} orderId The ID of the order.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiV1OrderAdminOrderIdMessagesGet(orderId: string, options?: RawAxiosRequestConfig): AxiosPromise<Array<MessageWithRelations>> {
+            return localVarFp.apiV1OrderAdminOrderIdMessagesGet(orderId, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Retrieves the conversation history for a specific order. The user must be a participant in the order (customer, shopper, or delivery person).
          * @summary Get messages for an order
          * @param {string} orderId The ID of the order.
@@ -248,6 +309,17 @@ export const MessagingApiFactory = function (configuration?: Configuration, base
  * MessagingApi - object-oriented interface
  */
 export class MessagingApi extends BaseAPI {
+    /**
+     * Retrieves the complete conversation history for a specific order. Only accessible by admins.
+     * @summary Get all messages for an order (Admin)
+     * @param {string} orderId The ID of the order.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public apiV1OrderAdminOrderIdMessagesGet(orderId: string, options?: RawAxiosRequestConfig) {
+        return MessagingApiFp(this.configuration).apiV1OrderAdminOrderIdMessagesGet(orderId, options).then((request) => request(this.axios, this.basePath));
+    }
+
     /**
      * Retrieves the conversation history for a specific order. The user must be a participant in the order (customer, shopper, or delivery person).
      * @summary Get messages for an order

@@ -1,6 +1,17 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Bell, ChevronDown, Menu, X, MessageSquare } from "lucide-react";
+import { Bell, ChevronDown, Menu, X } from "lucide-react";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+  DrawerPortal,
+  DrawerOverlay,
+} from "@/components/ui/drawer";
+import { NotificationApi } from "../../api/endpoints/notification-api";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -8,6 +19,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+
+// Assuming you have an Axios instance configured for your API
+import { axiosInstance } from "@/lib/apiClient"; // Adjust path as needed
+import { Notification, PaginatedNotifications } from "../../api/models";
 
 interface LayoutProps {
   children: ReactNode;
@@ -389,6 +404,12 @@ export function Layout({ children }: LayoutProps) {
     { path: "/marketing", label: "Email Marketing", icon: MarketingIcon },
   ];
 
+  // Notification states
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isNotificationsDrawerOpen, setIsNotificationsDrawerOpen] =
+    useState(false);
+
   const userItems = [
     { path: "/admins", label: "Admins", icon: ProfileIcon },
     { path: "/customers", label: "Customers", icon: CustomersIcon },
@@ -409,6 +430,60 @@ export function Layout({ children }: LayoutProps) {
     );
   };
 
+  // Initialize NotificationApi with your axios instance
+  const notificationApi = new NotificationApi(
+    undefined,
+    undefined,
+    axiosInstance,
+  );
+
+  // Fetch notifications and unread count
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const [notificationsRes, unreadCountRes] = await Promise.all([
+          notificationApi.notificationsGet(),
+          notificationApi.notificationsUnreadCountGet(),
+        ]);
+        setNotifications(notificationsRes.data.data || []);
+        setUnreadCount(unreadCountRes.data.count || 0);
+      } catch (error) {
+        console.error("Failed to fetch notifications:", error);
+        // Handle error (e.g., show a toast notification)
+      }
+    };
+
+    fetchNotifications();
+
+    // Optionally, refetch notifications periodically or on specific events
+    const interval = setInterval(fetchNotifications, 60000); // Refetch every minute
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleMarkAsRead = async (notificationId: string) => {
+    try {
+      await notificationApi.notificationsNotificationIdReadPatch(
+        notificationId,
+      );
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n)),
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await notificationApi.notificationsReadAllPatch();
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error("Failed to mark all notifications as read:", error);
+    }
+  };
+
   const NavSection = ({
     title,
     items,
@@ -417,7 +492,7 @@ export function Layout({ children }: LayoutProps) {
     items: typeof mainMenuItems;
   }) => (
     <div className="mb-[38px]">
-      <div className="px-6 mb-[12px]">
+      <div className="px-6 mb-3">
         <p className="text-[15px] text-[#6A717F] font-sans font-normal leading-6">
           {title}
         </p>
@@ -437,7 +512,7 @@ export function Layout({ children }: LayoutProps) {
                   : "text-[#6A717F] hover:bg-[#F5F6FA] font-normal",
               )}
             >
-              <Icon className="w-[22px] h-[22px] flex-shrink-0" />
+              <Icon className="w-[22px] h-[22px] shrink-0" />
               <span className="text-base leading-[22px] font-sans flex-1">
                 {item.label}
               </span>
@@ -535,29 +610,86 @@ export function Layout({ children }: LayoutProps) {
             </div>
 
             <div className="flex items-center gap-4 sm:gap-9">
-              {/* Notifications */}
-              <div className="relative w-12 h-[53px]">
-                <div className="absolute left-0 top-[5px] w-12 h-12 rounded-[11px] bg-[#F5F6FA] flex items-center justify-center cursor-pointer hover:bg-[#E6E9F4] transition-colors">
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M20.3634 17.75C20.276 17.9012 20.1512 18.0275 20.0001 18.1152C19.8481 18.2034 19.6749 18.2498 19.4991 18.25H15.2657L15.1837 18.6494C15.0338 19.3832 14.635 20.043 14.0548 20.5166C13.4746 20.9901 12.749 21.249 12.0001 21.249C11.2511 21.249 10.5247 20.9902 9.94446 20.5166C9.36442 20.043 8.96549 19.3831 8.81555 18.6494L8.7345 18.25H4.50012L4.36926 18.2412C4.23954 18.224 4.11411 18.1812 4.00012 18.1152C3.84868 18.0275 3.72237 17.9016 3.63489 17.75H20.3634ZM9.40833 18.917C9.59783 19.4527 9.94832 19.9169 10.4122 20.2451C10.8183 20.5324 11.2939 20.7038 11.7872 20.7422L12.0001 20.75C12.5686 20.7498 13.1229 20.5733 13.587 20.2451C14.0511 19.9169 14.4024 19.4529 14.5919 18.917L14.8273 18.25H9.172L9.40833 18.917ZM12.0001 2.75C13.8564 2.75003 15.6367 3.48735 16.9493 4.7998C18.2621 6.11256 19.0001 7.89348 19.0001 9.75C19.0001 13.1175 19.7829 15.7485 20.3615 16.7451V16.7461C20.45 16.8979 20.4975 17.0704 20.4982 17.2461C20.4988 17.4208 20.4527 17.5924 20.3663 17.7441L19.9318 16.999C19.2675 15.8572 18.5001 13.077 18.5001 9.75C18.5001 8.02609 17.8148 6.37231 16.5958 5.15332C15.3769 3.93463 13.7238 3.25003 12.0001 3.25C10.2762 3.25 8.62242 3.93437 7.40344 5.15332C6.18446 6.37231 5.50012 8.02609 5.50012 9.75C5.50012 13.0797 4.73003 15.8598 4.0675 16.999L3.63293 17.7461C3.54602 17.594 3.5005 17.4213 3.5011 17.2461C3.50179 17.0704 3.54836 16.8978 3.63684 16.7461L3.63782 16.7451C4.21627 15.7485 5.00012 13.1185 5.00012 9.75C5.00012 7.89348 5.73717 6.11256 7.04993 4.7998C8.36268 3.48708 10.1436 2.75 12.0001 2.75Z"
-                      fill="#50555C"
-                      stroke="black"
-                    />
-                  </svg>
-                </div>
-                <div className="absolute left-[29px] top-0 w-[19px] h-[19px] rounded-[48px] bg-[#D97474] border-[3px] border-white flex items-center justify-center">
-                  <span className="text-[10px] font-nunito text-white leading-[18px]">
-                    21
-                  </span>
-                </div>
-              </div>
+              <Drawer
+                direction="right"
+                open={isNotificationsDrawerOpen}
+                onOpenChange={setIsNotificationsDrawerOpen}
+              >
+                <DrawerTrigger asChild>
+                  <div className="relative w-12 h-[53px]">
+                    <button className="absolute left-0 top-[5px] w-12 h-12 rounded-[11px] bg-[#F5F6FA] flex items-center justify-center cursor-pointer hover:bg-[#E6E9F4] transition-colors">
+                      <Bell className="w-6 h-6 text-[#50555C]" />
+                    </button>
+                    {unreadCount > 0 && (
+                      <div className="absolute left-[29px] top-0 w-[19px] h-[19px] rounded-[48px] bg-[#D97474] border-[3px] border-white flex items-center justify-center">
+                        <span className="text-[10px] font-nunito text-white leading-[18px]">
+                          {unreadCount}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </DrawerTrigger>
+                <DrawerPortal>
+                  <DrawerOverlay className="fixed inset-0 bg-black/40" />
+                  <DrawerContent className="bg-white flex flex-col rounded-t-[10px] h-full w-full max-w-md mt-24 fixed bottom-0 right-0">
+                    <div className="p-4 bg-white flex-1 h-full">
+                      <DrawerHeader className="flex justify-between items-center mb-4">
+                        <DrawerTitle className="text-xl font-bold">
+                          Notifications
+                        </DrawerTitle>
+                        <DrawerClose asChild>
+                          <button className="p-2 rounded-md hover:bg-gray-100">
+                            <X className="w-5 h-5" />
+                          </button>
+                        </DrawerClose>
+                      </DrawerHeader>
+                      <div className="p-4 overflow-y-auto h-[calc(100%-80px)]">
+                        {notifications.length === 0 ? (
+                          <p className="text-muted-foreground text-center">
+                            No notifications yet.
+                          </p>
+                        ) : (
+                          <div className="space-y-4">
+                            {notifications.map((notification) => (
+                              <div
+                                key={notification.id}
+                                className={cn(
+                                  "p-3 rounded-md border",
+                                  notification.isRead
+                                    ? "bg-gray-50 text-gray-500"
+                                    : "bg-white text-gray-900 font-medium",
+                                )}
+                              >
+                                <p>{notification.body}</p>
+                                {!notification.isRead && (
+                                  <button
+                                    onClick={() =>
+                                      handleMarkAsRead(notification.id)
+                                    }
+                                    className="text-sm text-blue-600 hover:underline mt-1"
+                                  >
+                                    Mark as Read
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {notifications.length > 0 && (
+                        <div className="p-4 border-t">
+                          <button
+                            onClick={handleMarkAllAsRead}
+                            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors"
+                          >
+                            Mark All as Read
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </DrawerContent>
+                </DrawerPortal>
+              </Drawer>
 
               {/* Messages - Hidden on small screens */}
               <div className="hidden sm:block relative w-12 h-[53px]">
@@ -590,6 +722,7 @@ export function Layout({ children }: LayoutProps) {
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
                     <div className="hidden sm:block text-right">
+                      {/* TODO: Replace "Jonathan Smith" with actual authenticated user's name */}
                       <p className="text-sm font-nunito font-medium text-black leading-[18px]">
                         Jonathan Smith
                       </p>

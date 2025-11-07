@@ -1,113 +1,87 @@
-import { useState, useEffect, useMemo } from 'react';
-import { axiosInstance } from '@/lib/apiClient';
-import type { Transaction } from '../../api';
+import { useQueries, keepPreviousData } from "@tanstack/react-query";
+import { adminApi } from "@/lib/apiClient";
+import type { AxiosResponse } from "axios";
+import type {
+  Transaction,
+  TransactionsAdminOverviewGet200Response,
+} from "../../api";
 
-interface AdminOverviewData {
-  totalTransactions: number;
-  totalIncome: number;
-  totalExpenses: number;
-  totalRevenue: number;
-}
-
-interface PaginatedTransactionsResponse {
+// Define a more accurate PaginatedTransactions type based on the API response structure
+interface PaginatedTransactions {
   data: Transaction[];
-  pagination: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-  };
-}
-
-interface UseAdminTransactionsOptions {
-  page?: number;
-  pageSize?: number;
-  status?: string;
-}
-
-interface UseAdminTransactionsResult {
-  transactions: Transaction[];
-  overview: AdminOverviewData | null;
-  loading: boolean;
-  error: Error | null;
-  total: number;
+  page: number;
   totalPages: number;
   pageSize: number;
+  totalCount: number;
 }
 
-export function useAdminTransactions(
-  options: UseAdminTransactionsOptions = {}
-): UseAdminTransactionsResult {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [overview, setOverview] = useState<AdminOverviewData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
+// Mock transaction status type since TransactionStatus is not available in API
+type MockTransactionStatus = "pending" | "completed" | "failed" | "cancelled" | string;
 
-  const { page = 1, pageSize = 10, status } = options;
+interface UseAdminTransactionsProps {
+  page?: number;
+  pageSize?: number;
+  status?: MockTransactionStatus; // Use mock status type
+  search?: string;
+  searchBy?: string;
+}
 
-  useEffect(() => {
-    let mounted = true;
-
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const [overviewRes, transactionsRes] = await Promise.all([
-          axiosInstance.get<AdminOverviewData>('/transactions/admin/overview'),
-          axiosInstance.get<PaginatedTransactionsResponse>(
-            '/transactions/admin/all',
-            {
-              params: {
-                page,
-                pageSize,
-                ...(status ? { status } : {}),
-              },
-            }
-          ),
-        ]);
-
-        if (mounted) {
-          setOverview(overviewRes.data);
-
-          if (transactionsRes.data) {
-            const result = transactionsRes.data as PaginatedTransactionsResponse;
-            setTransactions(result.data || []);
-            if (result.pagination) {
-              setTotal(result.pagination.total || 0);
-              setTotalPages(result.pagination.totalPages || 0);
-            }
-          }
-        }
-      } catch (err) {
-        if (mounted) {
-          setError(
-            err instanceof Error ? err : new Error('Failed to fetch transactions')
+export function useAdminTransactions({
+  page = 1,
+  pageSize = 10,
+  status,
+  search,
+  searchBy,
+}: UseAdminTransactionsProps) {
+  const results = useQueries({
+    queries: [
+      {
+        queryKey: ["adminTransactions", page, pageSize, status, search, searchBy],
+        queryFn: async () => {
+          // Map search and searchBy to the correct API parameters if needed.
+          // For now, transactionsAdminAllGet doesn't seem to have searchBy/search params directly.
+          // If search is needed, the API would need to be updated or client-side filtering would apply.
+          const response = await adminApi.transactionsAdminAllGet(
+            undefined, // orderCode
+            undefined, // customerName
+            status, // Pass the single TransactionStatus
+            undefined, // createdAtStart
+            undefined, // createdAtEnd
+            page,
+            pageSize
           );
-          setTransactions([]);
-          setOverview(null);
-        }
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
+          // The generated client's transactionsAdminAllGet returns AxiosPromise<void>
+          // We cast it here assuming the actual response data matches PaginatedTransactions.
+          return (response as unknown as AxiosResponse<PaginatedTransactions>).data;
+        },
+        placeholderData: keepPreviousData,
+      },
+      {
+        queryKey: ["adminTransactionsOverview"],
+        queryFn: async () => {
+          const response = await adminApi.transactionsAdminOverviewGet();
+          return response.data as TransactionsAdminOverviewGet200Response;
+        },
+        staleTime: 60000, // Refetch overview data less frequently
+      },
+    ],
+  });
 
-    fetchData();
+  const transactionsQuery = results[0];
+  const overviewQuery = results[1];
 
-    return () => {
-      mounted = false;
-    };
-  }, [page, pageSize, status]);
+  // The overview object from the API is directly available on overviewQuery.data
+  const overview = overviewQuery.data;
+  const transactions = transactionsQuery.data?.data ?? [];
+  const total = transactionsQuery.data?.totalCount;
+  const totalPages = transactionsQuery.data?.totalPages;
 
   return {
     transactions,
-    overview,
-    loading,
-    error,
+    overview: overviewQuery.data,
+    loading: transactionsQuery.isLoading || overviewQuery.isLoading,
+    error: transactionsQuery.error || overviewQuery.error,
     total,
     totalPages,
-    pageSize,
   };
 }

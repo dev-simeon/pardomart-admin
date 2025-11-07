@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { CustomerStatCard } from "@/components/customers/CustomerStatCard";
-import { useUsersCount } from "@/hooks/useUsersCount";
+import { useAdminCustomersOverview } from "@/hooks/useAdminCustomersOverview";
 import { useUsersByRole } from "@/hooks/useUsersByRole";
 import { Role, type User } from "../../api";
 import type { ColumnDef, Row } from "@tanstack/react-table";
@@ -365,10 +365,14 @@ const mockCustomers: Customer[] = [
 
 export default function Customers() {
   const navigate = useNavigate();
-  const { data: totalCustomers, isLoading: loadingCustomers } = useUsersCount(Role.Customer);
-  const totalCustomersDisplay = loadingCustomers ? "..." : (totalCustomers ?? 0).toLocaleString();
+  const { overview, loading: loadingOverview } = useAdminCustomersOverview();
   const [searchValue, setSearchValue] = useState("");
   const { users, isLoading } = useUsersByRole(Role.Customer, 1, 50);
+
+  const totalCustomers = overview?.totalCustomers;
+  const totalCustomersDisplay = loadingOverview ? "..." : (totalCustomers ?? 0).toLocaleString();
+  const newCustomers = overview?.newCustomers ?? 0;
+  const totalCompletedOrders = overview?.totalCompletedOrders ?? 0;
 
   const formatDate = (iso?: string) =>
     iso ? new Date(iso).toLocaleDateString() : "";
@@ -520,13 +524,17 @@ export default function Customers() {
         <CustomerStatCard
           icon={<NewCustomersIcon />}
           title="New Customers"
-          value="676"
+          value={loadingOverview ? "..." : (newCustomers ?? 0).toLocaleString()}
         />
-        <CustomerStatCard icon={<OrdersIcon />} title="Orders" value="1,116" />
+        <CustomerStatCard
+          icon={<OrdersIcon />}
+          title="Invoices & Payment"
+          value={loadingOverview ? "..." : (totalCompletedOrders ?? 0).toLocaleString()}
+        />
         <CustomerStatCard
           icon={<InvoicesIcon />}
-          title="Invoices & Payment"
-          value="186"
+          title="Total Completed Orders"
+          value={loadingOverview ? "..." : (totalCompletedOrders ?? 0).toLocaleString()}
         />
       </div>
 
@@ -540,7 +548,7 @@ export default function Customers() {
             onRowClick={(row: Row<User>) => navigate(`/customers/${row.original.id}`)}
             toolbar={
               <DataTableToolbar
-                tabs={[{ id: "all", label: "All Customers", count: loadingCustomers ? undefined : totalCustomers ?? 0 }]}
+                tabs={[{ id: "all", label: "All Customers", count: loadingOverview ? undefined : totalCustomers ?? 0 }]}
                 activeTab={"all"}
                 searchColumn={"name"}
                 onSearchColumnChange={() => {}}
