@@ -6,7 +6,7 @@ import DataTableToolbar from "@/pages/data-table-toolbar";
 import { TransactionDetailsModal } from "@/components/transactions";
 import { useCustomerTransactions } from "@/hooks/useCustomerTransactions";
 import { useAdminCustomerTransactions } from "@/hooks/useAdminCustomerTransactions";
-import type { Transaction as ApiTransaction } from "../../../api";
+import type { Transaction as ApiTransaction } from "../../../api-client";
 
 export type CustomerTransactionHistoryProps = {
   customerId: string;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { vendorApi } from '@/lib/apiClient';
-import type { PaginatedVendors, VendorListItem } from '../../api';
+import type { PaginatedVendors, VendorListItem } from '../../api-client';
 
 interface UseVendorsOptions {
   page?: number;

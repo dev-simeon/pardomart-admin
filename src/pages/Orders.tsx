@@ -6,7 +6,7 @@ import { useAdminOrders } from "@/hooks/useAdminOrders";
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
 import { cn } from "@/lib/utils";
 import { DataTable } from "@/components/ui/data-table";
-import { OrderStatus } from "../../api"; // Import OrderStatus enum
+import { OrderStatus } from "../../api-client"; // Import OrderStatus enum
 const OrdersIcon = () => (
   <svg
     width="22"

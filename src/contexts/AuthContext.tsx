@@ -5,7 +5,7 @@ import {
   ReactNode,
   useCallback,
 } from "react";
-import { User } from "../../api/models";
+import { User } from "../../api-client/models";
 import { axiosInstance as api } from "@/lib/apiClient";
 import { tokenExpiration, TokenMetadata } from "@/lib/tokenExpiration";
 

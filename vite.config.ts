@@ -18,5 +18,31 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) {
+            return undefined;
+          }
+          if (id.includes('react-router')) {
+            return 'router';
+          }
+          if (id.includes('@tanstack/react-query')) {
+            return 'react-query';
+          }
+          if (id.includes('recharts')) {
+            return 'charts';
+          }
+          if (id.includes('framer-motion')) {
+            return 'motion';
+          }
+          if (id.includes('lucide-react')) {
+            return 'icons';
+          }
+          return 'vendor';
+        },
+      },
+    },
   },
 })

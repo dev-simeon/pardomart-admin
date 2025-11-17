@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { userApi } from "@/lib/apiClient";
-import type { Role, PaginatedUsers, User } from "../../api";
+import type { Role, PaginatedUsers, User } from "../../api-client";
 
 export type UseUsersByRoleResult = {
   users: User[];

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supportApi } from '@/lib/apiClient';
-import type { ApiV1SupportAdminOverviewGet200Response } from '../../api';
+import type { ApiV1SupportAdminOverviewGet200Response } from '../../api-client';
 
 interface UseAdminSupportOverviewResult {
   overview: ApiV1SupportAdminOverviewGet200Response | null;

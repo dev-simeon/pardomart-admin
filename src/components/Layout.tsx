@@ -11,7 +11,7 @@ import {
   DrawerPortal,
   DrawerOverlay,
 } from "@/components/ui/drawer";
-import { NotificationApi } from "../../api/endpoints/notification-api";
+import { NotificationApi } from "../../api-client/endpoints/notification-api";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -22,7 +22,7 @@ import {
 
 // Assuming you have an Axios instance configured for your API
 import { axiosInstance } from "@/lib/apiClient"; // Adjust path as needed
-import { Notification, PaginatedNotifications } from "../../api/models";
+import { Notification, PaginatedNotifications } from "../../api-client/models";
 
 interface LayoutProps {
   children: ReactNode;

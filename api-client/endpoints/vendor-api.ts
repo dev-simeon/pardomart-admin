@@ -65,6 +65,8 @@ import type { VendorWithRelations } from '../models';
 import type { VendorsIncompleteSetupsGet200Response } from '../models';
 // @ts-ignore
 import type { VendorsOverviewGet200Response } from '../models';
+// @ts-ignore
+import type { EarningsTotalGetPeriodEnum } from './earnings-api';
 /**
  * VendorApi - axios parameter creator
  */
@@ -1891,10 +1893,3 @@ export class VendorApi extends BaseAPI {
     }
 }
 
-export const EarningsTotalGetPeriodEnum = {
-    Today: 'today',
-    _7days: '7days',
-    _1month: '1month',
-    _1year: '1year'
-} as const;
-export type EarningsTotalGetPeriodEnum = typeof EarningsTotalGetPeriodEnum[keyof typeof EarningsTotalGetPeriodEnum];

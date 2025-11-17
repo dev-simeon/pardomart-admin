@@ -6,7 +6,7 @@
 echo "🚀 Generating PardoMart API Client..."
 
 API_SPEC_URL="https://pardomart-node-api-vaje.onrender.com/api-docs/openapi.json"
-OUTPUT_DIR="./api"
+OUTPUT_DIR="./api-client"
 
 # Clean only generated files, preserve custom configuration
 echo "Cleaning generated API files (preserving config.ts)..."
@@ -52,8 +52,8 @@ if [ $? -eq 0 ]; then
     echo "Custom configuration preserved:"
     echo "   - config.ts (API configuration & token management)"
     echo ""
-    echo "You can import APIs from 'api/endpoints' (e.g., AuthApi, ProductApi)"
-    echo "You can import types from 'api/models' (e.g., User, Product)"
+    echo "You can import APIs from 'api-client/endpoints' (e.g., AuthApi, ProductApi)"
+    echo "You can import types from 'api-client/models' (e.g., User, Product)"
 else
     echo "❌ API client generation failed!"
     exit 1

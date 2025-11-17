@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { userApi } from "@/lib/apiClient";
-import type { Role } from "../../api";
+import type { Role } from "../../api-client";
 
 export function useUsersCount(role: Role) {
   return useQuery({

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supportApi } from '@/lib/apiClient';
-import type { SupportTicket, TicketStatus } from '../../api';
+import type { SupportTicket, TicketStatus } from '../../api-client';
 
 interface UseUpdateTicketStatusResult {
   updateStatus: (ticketId: string, newStatus: TicketStatus) => Promise<SupportTicket | null>;

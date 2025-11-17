@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Configuration, VendorApiFactory, OrderApiFactory, UserApiFactory, ProductApiFactory, SupportApiFactory, CustomersApiFactory, AuthApiFactory, AdminApiFactory } from '../../api';
+import { Configuration, VendorApiFactory, OrderApiFactory, UserApiFactory, ProductApiFactory, SupportApiFactory, CustomersApiFactory, AuthApiFactory, AdminApiFactory } from '../../api-client';
 import { tokenExpiration, TokenMetadata } from '@/lib/tokenExpiration';
 
 const API_BASE_URL = 'https://pardomart-node-api-vaje.onrender.com/api/v1/';

@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { CustomerStatCard } from "@/components/customers/CustomerStatCard";
 import { useUsersCount } from "@/hooks/useUsersCount";
 import { useUsersByRole } from "@/hooks/useUsersByRole";
-import { Role, type User } from "../../api";
+import { Role, type User } from "../../api-client";
 import type { ColumnDef, Row } from "@tanstack/react-table";
 import { DataTable } from "@/components/ui/data-table";
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";

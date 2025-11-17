@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { customersApi } from '@/lib/apiClient';
-import type { Transaction } from '../../api';
+import type { Transaction } from '../../api-client';
 
 export interface UseCustomerTransactionsOptions {
   customerId: string;

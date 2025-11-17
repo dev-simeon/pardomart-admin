@@ -3,7 +3,7 @@ import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { authApi } from "@/lib/apiClient";
-import { AuthInitiateLoginPostRequestRoleEnum } from "../../api/models";
+import { AuthInitiateLoginPostRequestRoleEnum } from "../../api-client/models";
 
 export default function Login() {
   const navigate = useNavigate();

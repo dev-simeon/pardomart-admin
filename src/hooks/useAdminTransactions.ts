@@ -4,7 +4,7 @@ import type { AxiosResponse } from "axios";
 import type {
   Transaction,
   TransactionsAdminOverviewGet200Response,
-} from "../../api";
+} from "../../api-client";
 
 // Define a more accurate PaginatedTransactions type based on the API response structure
 interface PaginatedTransactions {

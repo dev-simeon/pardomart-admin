@@ -4,7 +4,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
 import type { ColumnDef } from "@tanstack/react-table";
 import { supportApi } from "@/lib/apiClient";
-import type { PaginatedSupportTickets, SupportTicket, TicketStatus } from "../../api";
+import type { PaginatedSupportTickets, SupportTicket, TicketStatus } from "../../api-client";
 import { useQuery } from "@tanstack/react-query";
 import { useAdminSupportOverview } from "@/hooks/useAdminSupportOverview";
 import { UpdateTicketStatusModal } from "@/components/support/UpdateTicketStatusModal";

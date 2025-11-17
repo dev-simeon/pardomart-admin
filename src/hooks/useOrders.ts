@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { vendorApi } from '@/lib/apiClient';
-import type { Order, OrderStatus } from '../../api';
+import type { Order, OrderStatus } from '../../api-client';
 
 interface UseOrdersOptions {
   page?: number;

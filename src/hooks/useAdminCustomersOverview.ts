@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { customersApi } from '@/lib/apiClient';
-import type { CustomersAdminOverviewGet200Response } from '../../api';
+import type { CustomersAdminOverviewGet200Response } from '../../api-client';
 
 interface UseAdminCustomersOverviewResult {
   overview: CustomersAdminOverviewGet200Response | null;

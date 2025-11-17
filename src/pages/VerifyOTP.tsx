@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { authApi } from "@/lib/apiClient";
-import { AuthVerifyLoginPostRequestRoleEnum } from "../../api/models";
+import { AuthVerifyLoginPostRequestRoleEnum } from "../../api-client/models";
 import OTPInput from "@/components/auth/OTPInput";
 
 export default function VerifyOTP() {

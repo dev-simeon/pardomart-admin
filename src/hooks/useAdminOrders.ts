@@ -1,7 +1,7 @@
 import { useQueries, keepPreviousData } from "@tanstack/react-query";
 import { adminApi } from "@/lib/apiClient";
 import type { AxiosResponse } from "axios";
-import type { Order, OrderAdminOverviewGet200Response, OrderStatus } from "../../api"; // Import OrderStatus and the correct overview response type
+import type { Order, OrderAdminOverviewGet200Response, OrderStatus } from "../../api-client"; // Import OrderStatus and the correct overview response type
 
 // Define a more accurate PaginatedOrders type based on the API response structure
 // This should ideally come from your generated API types if it's correct.

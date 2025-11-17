@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import type { SupportTicket, TicketStatus } from '../../../api';
-import { TicketStatus as TicketStatusEnum } from '../../../api';
+import type { SupportTicket, TicketStatus } from '../../../api-client';
+import { TicketStatus as TicketStatusEnum } from '../../../api-client';
 import { toast } from 'sonner';
 import { useUpdateTicketStatus } from '@/hooks/useUpdateTicketStatus';
 

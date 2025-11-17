@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { userApi } from '@/lib/apiClient';
-import { Role } from '../../api';
-import type { PaginatedUsers, User } from '../../api';
+import { Role } from '../../api-client';
+import type { PaginatedUsers, User } from '../../api-client';
 
 interface UseVendorUsersOptions {
   page?: number;
